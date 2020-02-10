@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Model Viewer</title>
+</head>
+
+<body>
+
+    <header>
+        <h1 id="project-name">Project Name Here</h1>
+    </header>
+
+    <nav>
+        <div id="navbar-list">
+            <div id="upload" class="navbar-item selected">Upload Model</div>
+            <div id="location" class="navbar-item">Select Location</div>
+            <div id="settings" class="navbar-item">Object Settings</div>
+            <div id="content" class="navbar-item">Additional Content</div>
+            <div id="finish" class="navbar-item">Finish</div>
+        </div>
+    </nav>
+
+    <main id="viewer">
+        <canvas></canvas>
+    </main>
+
+    <aside id="sidebar">
+        <h2 id="current-sidebar">NOT SET YET</h2>
+        <div id="upload-menu" class="">
+            upload a model
+        </div>
+        <div id="location-menu" class="hidden">
+            list locations
+        </div>
+        <div id="settings-menu" class="hidden">
+            <div class="setting-item">
+                <h2 class="setting-header">Scaling</h2>
+                <input name="scale-slider" type="range" id="scale-slider" min="1" max="100" step="1" value="25">
+                <label id="scale-label" for="scale-slider">1.0</label>
+            </div>
+            <div class="setting-item">
+                <h2 class="setting-header">Axes</h2>
+                <label id="axes-label" for="axes-checkbox">Show Axes</label>
+                <input name="axes-checkbox" type="checkbox" id="axes-checkbox">
+            </div>
+            <div class="setting-item">
+                <h2 class="setting-header">Grid</h2>
+                <label id="grid-label" for="grid-checkbox">Show Grid</label>
+                <input name="grid-checkbox" type="checkbox" id="grid-checkbox">
+            </div>
+            <div class="setting-item">
+            </div>
+        </div>
+        <div id="content-menu" class="hidden">
+            Add extra content
+        </div>
+        <div id="finish-menu" class="hidden">
+            Finish
+        </div>
+    </aside>
+
+    <footer>
+        <p class="instruct">ROTATE: Click and hold</p>
+        <p class="instruct">ZOOM: Scroll wheel</p>
+        <p class="instruct">PAN: Shift + click</p>
+    </footer>
+</body>
+
+
+</html>
+
+
