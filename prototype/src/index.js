@@ -50,13 +50,16 @@ var settings = {
     animation: false,
 }
 
-var currentMenu = null;
-var currentSidebar = null;
+var menuState = {
+    currentMenu: null,
+    currentSidebar: null
+}
 
 init();
 animate();
 
 function init() {
+    setInitialMenuState()
     let canvas = document.querySelector("canvas");
     let viewer = document.querySelector("#viewer");
     let w = viewer.clientWidth;
@@ -71,7 +74,7 @@ function init() {
     scene.add(model.light);
 
     //loads default models
-    loadModel(helmet);
+    loadGLTFModel(helmet);
     loadCubemap(settings.cubemap);
     addListeners();
 
@@ -97,7 +100,8 @@ function onWindowResize() {
     renderer.setSize(w, h, false);
 }
 
-function loadModel(file) {
+function loadGLTFModel(file) {
+    //need to distinguish between gltf, glb, or obj
     loaders.gltf.load(file, (gltf) => {
         model.model = gltf.scene.children[0];
         scene.add(model.model);
@@ -138,36 +142,60 @@ function addListeners() {
     axes.addEventListener('change', toggleAxes, false);
     let grid = document.querySelector("#grid-checkbox");
     grid.addEventListener('change', toggleGrid, false);
+    let fileUpload = document.querySelector("#file-select");
+    fileUpload.addEventListener('change', userUpload, false);
 
     //navbar buttons
     let items = document.querySelectorAll(".navbar-item");
     items.forEach((menuItem) => {
         menuItem.addEventListener('click', selectMenu, false);
     });
-    //first menu item is always upload and is default
-    currentSidebar = document.querySelector("#" + items[0].id + "-menu");
-    currentMenu = items[0];
-    let header = document.querySelector("#current-sidebar");
-    header.textContent = currentMenu.textContent;
 }
 
+function setInitialMenuState() {
+    let items = document.querySelectorAll(".navbar-item");
+    //first menu item is always upload and is default
+    menuState.currentSidebar = document.querySelector("#" + items[0].id + "-menu");
+    menuState.currentMenu = items[0];
+    let header = document.querySelector("#current-sidebar");
+    header.textContent = menuState.currentMenu.textContent;
+}
+
+function userUpload(event) {
+    let files = event.target.files;
+    console.log(files);
+    if(files.length > 0) {
+        //let ext = file;
+        if(files[0].name.endsWith(".glb")) {
+            let url = URL.createObjectURL(files[0]);
+            scene.remove(model.model);
+            loadGLTFModel(url);
+        }
+        else if(false) {
+            //another file type
+        }
+        else {
+            console.log("file type not supported");
+        }
+    }
+}
 
 function selectMenu(event) {
     //this is kinda hacky
     //probably a better way if we use Vue
     let ele = event.target;
     let id = ele.id;
-    currentMenu.classList.remove("selected");
-    currentSidebar.classList.add("hidden");
+    menuState.currentMenu.classList.remove("selected");
+    menuState.currentSidebar.classList.add("hidden");
     ele.classList.add("selected");
-    currentMenu = ele;
+    menuState.currentMenu = ele;
     let newSidebar = document.querySelector("#" + ele.id + "-menu");
     newSidebar.classList.remove("hidden");
-    currentSidebar = newSidebar;
+    menuState.currentSidebar = newSidebar;
 
     //set sidebar header
     let header = document.querySelector("#current-sidebar");
-    header.textContent = currentMenu.textContent;
+    header.textContent = menuState.currentMenu.textContent;
 }
 
 function loadCubemap(cubemap) {
