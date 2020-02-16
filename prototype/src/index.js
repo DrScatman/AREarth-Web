@@ -26,6 +26,7 @@ import { AppDB } from "./db-init.js";
 var camera, scene, renderer, controls;
 
 var loaders = {
+    manager: null,
     gltf: null,
     cubeMap: null
 }
@@ -55,6 +56,8 @@ var menuState = {
     currentSidebar: null
 }
 
+var filemap = new Map();
+
 init();
 animate();
 
@@ -67,7 +70,8 @@ function init() {
 	camera = new THREE.PerspectiveCamera(70, w/h, 0.01, 1000);
 
 	scene = new THREE.Scene();
-    loaders.gltf = new GLTFLoader();
+    loaders.manager = new THREE.LoadingManager();
+    loaders.gltf = new GLTFLoader(loaders.manager);
     loaders.cubeMap = new THREE.CubeTextureLoader();
     //adds lighting to non-physically based materials
     model.light = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
@@ -101,8 +105,21 @@ function onWindowResize() {
 }
 
 function loadGLTFModel(file) {
+    loaders.manager.setURLModifier((url) => {
+        let name = url.split("/").pop()
+        let u = filemap.get(name);
+        if(u) {
+            return u;
+        }
+        else {
+            return url;
+        }
+    });
+
+
     //need to distinguish between gltf, glb, or obj
     loaders.gltf.load(file, (gltf) => {
+        scene.remove(model.model);
         model.model = gltf.scene.children[0];
         scene.add(model.model);
         if('material' in model.model) {
@@ -126,6 +143,35 @@ function loadGLTFModel(file) {
         console.log("Failed to load default model: " + error);
     });
 }
+
+function userUpload(event) {
+    let files = event.target.files;
+    console.log("files", files);
+    filemap.clear();
+
+    //single file
+    if(files.length == 1) {
+        if(files[0].name.endsWith(".glb")) {
+            let url = URL.createObjectURL(files[0]);
+            loadGLTFModel(url);
+        }
+    }
+    if(files.length > 0) {
+        //multiple files?
+        let gltf= null;
+        for(let i = 0; i < files.length; i++) {
+            let f = files[i];
+            let url;
+            if(f.name.endsWith(".gltf")) {
+                gltf = f.name;
+            }
+            url = URL.createObjectURL(f);
+            filemap.set(f.name, url);
+        }
+        loadGLTFModel(gltf);
+    }
+}
+
 
 function changeScale(event) {
     settings.scale = event.target.value/25.0;
@@ -161,24 +207,6 @@ function setInitialMenuState() {
     header.textContent = menuState.currentMenu.textContent;
 }
 
-function userUpload(event) {
-    let files = event.target.files;
-    console.log(files);
-    if(files.length > 0) {
-        //let ext = file;
-        if(files[0].name.endsWith(".glb")) {
-            let url = URL.createObjectURL(files[0]);
-            scene.remove(model.model);
-            loadGLTFModel(url);
-        }
-        else if(false) {
-            //another file type
-        }
-        else {
-            console.log("file type not supported");
-        }
-    }
-}
 
 function selectMenu(event) {
     //this is kinda hacky
