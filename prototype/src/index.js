@@ -12,13 +12,20 @@ import {
     helmet,
     fox,
     duck,
-    robot
+    robot,
+    pyramid,
+    pymtl
 } from './models.js';
 
 //threejs
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
+
+//dropzone
+import { SimpleDropzone } from 'simple-dropzone';
 
 //firebase db
 import { AppDB } from "./db-init.js";
@@ -28,7 +35,14 @@ var camera, scene, renderer, controls;
 var loaders = {
     manager: null,
     gltf: null,
+    obj: null,
+    mtl: null,
     cubeMap: null
+}
+
+var dropzone = {
+    dropzone: null,
+    filetype: "none",
 }
 
 var model = {
@@ -36,6 +50,7 @@ var model = {
     model: null,
     envMap: null,
     light: null,
+    mat: null
 };
 
 var settings = {
@@ -46,7 +61,7 @@ var settings = {
         helper: null
     },
     grid: null,
-    cubemap: lobby2,
+    cubemap: lobby1,
     rotate: false,
     animation: false,
 }
@@ -56,7 +71,10 @@ var menuState = {
     currentSidebar: null
 }
 
-var filemap = new Map();
+var filesBundle = {
+    filemap: null,
+    mainFile: null
+}
 
 init();
 animate();
@@ -72,13 +90,18 @@ function init() {
 	scene = new THREE.Scene();
     loaders.manager = new THREE.LoadingManager();
     loaders.gltf = new GLTFLoader(loaders.manager);
+    loaders.obj = new OBJLoader(loaders.manager);
+    loaders.mtl = new MTLLoader(loaders.manager);
     loaders.cubeMap = new THREE.CubeTextureLoader();
+    filesBundle.filemap = new Map();
     //adds lighting to non-physically based materials
     model.light = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
     scene.add(model.light);
 
     //loads default models
+    setLoaderOptions();
     loadGLTFModel(helmet);
+    //loadOBJModel(pyramid, pymtl);
     loadCubemap(settings.cubemap);
     addListeners();
 
@@ -105,26 +128,16 @@ function onWindowResize() {
 }
 
 function loadGLTFModel(file) {
-    loaders.manager.setURLModifier((url) => {
-        let name = url.split("/").pop()
-        let u = filemap.get(name);
-        if(u) {
-            return u;
-        }
-        else {
-            return url;
-        }
-    });
-
-
     //need to distinguish between gltf, glb, or obj
     loaders.gltf.load(file, (gltf) => {
         scene.remove(model.model);
-        model.model = gltf.scene.children[0];
+        model.model = gltf.scene;
         scene.add(model.model);
-        if('material' in model.model) {
-            model.model.material.envMap = model.envMap;
-        }
+        model.model.traverse((child) => {
+            if(child instanceof THREE.Mesh) {
+                child.material.envMap = model.envMap;
+            }
+        })
 
         //center local axes based on geometry
         //doesn't always work
@@ -140,14 +153,37 @@ function loadGLTFModel(file) {
     }, (xhr) => {
         console.log((xhr.loaded / xhr.total*100).toFixed(2)  + '% loaded');
     }, (error) => {
-        console.log("Failed to load default model: " + error);
+        console.log("Failed to load gltf model: " + error);
+    });
+}
+
+
+function loadOBJModel(file, mtl) {
+    loaders.mtl.load(mtl, (mat) => {
+        model.mat = mat;
+        loaders.obj.setMaterials(model.mat);
+
+        loaders.obj.load(file, (obj) => {
+            scene.remove(model.model);
+            model.model = obj;
+            scene.add(model.model);
+
+        }, (xhr) => {
+            console.log((xhr.loaded / xhr.total*100).toFixed(2)  + '% loaded');
+        }, (error) => {
+            console.log("Failed to load obj model: " + error);
+        });
+    }, (xhr) => {
+        console.log((xhr.loaded / xhr.total*100).toFixed(2)  + '% loaded');
+    }, (error) => {
+        console.log("Failed to load mtl: " + error);
     });
 }
 
 function userUpload(event) {
     let files = event.target.files;
     console.log("files", files);
-    filemap.clear();
+    filesBundle.filemap.clear();
 
     //single file
     if(files.length == 1) {
@@ -161,12 +197,11 @@ function userUpload(event) {
         let gltf= null;
         for(let i = 0; i < files.length; i++) {
             let f = files[i];
-            let url;
             if(f.name.endsWith(".gltf")) {
                 gltf = f.name;
             }
-            url = URL.createObjectURL(f);
-            filemap.set(f.name, url);
+            let url = URL.createObjectURL(f);
+            filesBundel.filemap.set(f.name, url);
         }
         loadGLTFModel(gltf);
     }
@@ -188,13 +223,67 @@ function addListeners() {
     axes.addEventListener('change', toggleAxes, false);
     let grid = document.querySelector("#grid-checkbox");
     grid.addEventListener('change', toggleGrid, false);
-    let fileUpload = document.querySelector("#file-select");
-    fileUpload.addEventListener('change', userUpload, false);
+    //let fileUpload = document.querySelector("#input");
+    //fileUpload.addEventListener('change', userUpload, false);
+
+    const dropEl = document.querySelector("#dropzone");
+    const inputEl = document.querySelector("#input");
+    dropzone.dropzone = new SimpleDropzone(dropEl, inputEl);
+
+    //dropzone.dropzone.on('drop', ({files}) => {
+    //    console.log(files);
+    //});
+    dropzone.dropzone.on('drop', loadModel);
+
+    //dropzone.dropzone.on('dropstart', () => {
+    //    console.log("Processing dropped files");
+    //});
 
     //navbar buttons
     let items = document.querySelectorAll(".navbar-item");
     items.forEach((menuItem) => {
         menuItem.addEventListener('click', selectMenu, false);
+    });
+}
+
+function loadModel({files}) {
+    console.log("dropped", files);
+    setFileType(files);
+    mapFilesToURL(files);
+    if(dropzone.filetype === "gltf") {
+        loadGLTFModel(filesBundle.mainFile);
+    }
+    if(dropzone.filetype === "obj") {
+        //loadOBJModel(filesBundle.mainFile, need mtl file somehow);
+    }
+}
+
+function mapFilesToURL(files) {
+    console.log("mapping to url", files);
+    files.forEach((file) => {
+        let url = URL.createObjectURL(file);
+        filesBundle.filemap.set(file.name, url);
+    });
+    console.log("mapping complete", filesBundle.filemap);
+}
+
+
+function setFileType(files) {
+    dropzone.filetype = "none";
+    files.forEach((file) => {
+        console.log(file.name);
+        if(file.name.endsWith(".obj")) {
+            dropzone.filetype = "obj";
+            filesBundle.mainFile = file.name;
+        }
+        if(file.name.endsWith(".gltf")) {
+            dropzone.filetype = "gltf";
+            filesBundle.mainFile = file.name;
+        }
+        if(file.name.endsWith(".glb")) {
+            dropzone.filetype = "glb";
+            filesBundle.mainFile = file.name;
+        }
     });
 }
 
@@ -205,6 +294,19 @@ function setInitialMenuState() {
     menuState.currentMenu = items[0];
     let header = document.querySelector("#current-sidebar");
     header.textContent = menuState.currentMenu.textContent;
+}
+
+function setLoaderOptions() {
+    loaders.manager.setURLModifier((url) => {
+        let name = url.split("/").pop()
+        let bloburl = filesBundle.filemap.get(name);
+        if(bloburl) {
+            return bloburl;
+        }
+        else {
+            return url;
+        }
+    });
 }
 
 

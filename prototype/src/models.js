@@ -3,4 +3,7 @@ import fox from './models/Fox.glb';
 import duck from './models/Duck.glb';
 import robot from './models/BrainStem.glb';
 
-export { helmet, fox, duck, robot }
+import pyramid from './models/pyramid.obj';
+import pymtl from './models/pyramid.mtl';
+
+export { helmet, fox, duck, robot, pyramid, pymtl }

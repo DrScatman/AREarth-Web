@@ -28,9 +28,15 @@
         <h2 id="current-sidebar">Upload Model</h2>
         <div id="upload-menu" class="">
             <div class="setting-item">
-                <h2 class="upload-header">Select a file</h2>
-                <p>Supported files: .glb</p>
-                <input name="file-select" type="file" id="file-select" multiple>
+                <h3 class="upload-header">Supported Files</h3>
+                <p>glb: recommended</p>
+                <p>gltf: gltf + bin + textures</p>
+                <p>obj: obj or obj + mtl</p>
+                <div id="dropzone">
+                    Drag and drop files here
+                </div>
+                <p>Or select file(s)</p>
+                <input type="file" id="input" multiple>
             </div>
         </div>
         <div id="location-menu" class="hidden">

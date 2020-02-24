@@ -24,7 +24,7 @@ module.exports = {
                 }
             },
             {
-                test: /\.glb$/,
+                test: /\.(glb|obj|mtl)$/,
                 loader: "file-loader",
                 options: {
                     outputPath: "models"

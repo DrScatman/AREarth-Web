@@ -95,12 +95,24 @@ nav {
     display: none;
 }
 
+#dropzone {
+    margin: 2rem 0;
+    height: 300px;
+    border: dashed 2px white;
+    text-align: center;
+}
+
+#input {
+    /*display: none;*/
+}
+
 .selected {
     background-color: yellow;
     color: black;
 }
 
 #upload-menu {
+    font-size: 2rem;
 }
 
 footer {
