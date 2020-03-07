@@ -71,7 +71,9 @@
                   <v-card>
                       <v-card-title>Upload</v-card-title>
                       <v-divider class="my-4"></v-divider>
-                      <v-card-subtitle>Drag and Drop</v-card-subtitle>
+                      <v-card-subtitle>Supported model formats: glTF, glb, obj</v-card-subtitle>
+                      <v-card-subtitle class="red--text" v-if="missingFiles.length > 0" v-model="missingFiles">Missing Files: {{missingFiles.toString().replace(/,/g, ", ")}}</v-card-subtitle>
+                      <v-card-subtitle class="light-green--text" v-if="primaryFileName && missingFiles.length === 0">Success!</v-card-subtitle>
                       <vue-dropzone ref="dropzone" id="dropzone" :options="dropzoneOptions" @vdropzone-file-added="vFileAdded" @vdropzone-removed-file="vFileRemoved"></vue-dropzone>
 
                   <v-card-actions>
@@ -83,12 +85,10 @@
               </v-dialog>
               <v-divider class="my-4"></v-divider>
               <v-list>
-                  <v-list-item-title>File Information goes below once loaded</v-list-item-title>
-                  <!--
                   <v-list-item>
+                      <v-list-item-title>File Information goes below once loaded</v-list-item-title>
                       <v-list-item-content>Filetype: </v-list-item-content>
                   </v-list-item>
-                  -->
               </v-list>
           </v-container>
           <v-container  v-if="currentTab==tabStates.LOCATION" class="pa-4" fluid>
@@ -133,6 +133,9 @@
 <script>
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 
 import vue2Dropzone from 'vue2-dropzone'
 
@@ -159,6 +162,8 @@ export default {
             "location5",
         ],
 
+        primaryModel: null,
+
         scene: null,
         camera: null,
         renderer: null,
@@ -169,10 +174,22 @@ export default {
         helpDialog: false,
         uploadDialog: false,
 
-        uploadedFiles: [],
+        loaders: {
+            manager: null,
+            gltf: null,
+            obj: null,
+            mtl: null,
+        },
+
+        //uploadedFiles: [],
+        fileMap: new Map(),
+        primaryFileName: null,
+        mtlFileName: "",
+        fileExt: null,
+        missingFiles: [],
 
         dropzoneOptions: {
-            url: "noPost",
+            url: "no_post",
             autoProcessQueue: false,
             acceptedFiles: ".obj,.mtl,.gltf,.bin,.glb,image/png,image/jpeg,image/jpg",
             addRemoveLinks: true,
@@ -185,19 +202,25 @@ export default {
             let viewer = document.querySelector("#viewer")
             let w = viewer.clientWidth
             let h = viewer.clientHeight
-            this.camera = new THREE.PerspectiveCamera(70, w/h, 0.01, 1000)
+            this.camera = new THREE.PerspectiveCamera(70, w/h, 0.01, 10000)
             this.camera.position.set(2, 2, 2)
             this.scene = new THREE.Scene()
+            let hemis = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
+            this.scene.add(hemis);
 
-            this.currentTab = this.tabStates.UPLOAD
             this.addListeners()
+            this.setInitialTabState()
+            this.instantiateLoaders()
+            this.configureURLOverride()
 
             let geometry = new THREE.BoxGeometry(2, 2, 2)
-            let material = new THREE.MeshNormalMaterial()
-            let mesh = new THREE.Mesh( geometry, material )
-            this.scene.add( mesh )
+            let material = new THREE.MeshPhongMaterial()
+            this.primaryModel = new THREE.Mesh(geometry, material)
+            this.scene.add(this.primaryModel)
 
             this.renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true})
+            this.renderer.setClearColor(0x777799, 1);
+            this.renderer.outputEncoding = THREE.sRGBEncoding;
             this.controls = new OrbitControls( this.camera, this.renderer.domElement )
             this.controls.update()
             this.renderer.setSize(w, h, false)
@@ -219,20 +242,101 @@ export default {
         addListeners() {
             window.addEventListener('resize', this.onWindowResize, false)
         },
-        vFileAdded(file) {
-            this.uploadedFiles.push(file)
+        vFileAdded() {
             this.$nextTick(()=> {
-                console.log("accepted", this.$refs.dropzone.getQueuedFiles())
+                //handle it as a bundle if possible
+                let files = this.$refs.dropzone.getQueuedFiles()
+                files.forEach((f) => {
+                    if(f.name.endsWith(".obj") ||
+                        f.name.endsWith(".gltf") ||
+                        f.name.endsWith(".glb")) {
+
+                        this.primaryFileName = f.name
+                        this.fileExt = this.primaryFileName.split(".").pop()
+                    }
+                    if(f.name.endsWith(".mtl")) {
+                        this.mtlFileName = f.name
+                    }
+                    let url = URL.createObjectURL(f)
+                    this.fileMap.set(f.name, url)
+                })
+                if(this.primaryFileName) {
+                    //clear missing files
+                    this.missingFiles = []
+                    if(this.fileExt === "gltf" || this.fileExt === "glb") {
+                        this.loadGLTF(this.primaryFileName)
+                    }
+                    else {
+                        this.loadOBJ(this.primaryFileName, this.mtlFileName)
+                    }
+                }
+                else {
+                    console.log("missing primary file")
+                }
             })
         },
-        vFileRemoved(file, error, xhr) {
-            console.log(error, xhr)
-            let index = this.uploadedFiles.indexOf(file)
-            this.uploadedFiles.splice(index, 1)
+        vFileRemoved() {
+            console.log("removed file")
         },
         vRemoveAllFiles() {
             this.$refs.dropzone.removeAllFiles()
-            this.uploadedFiles = []
+            this.scene.remove(this.primaryModel)
+        },
+        instantiateLoaders() {
+            this.loaders.manager = new THREE.LoadingManager()
+            this.loaders.gltf = new GLTFLoader(this.loaders.manager)
+            this.loaders.obj = new OBJLoader(this.loaders.manager);
+            this.loaders.mtl = new MTLLoader(this.loaders.manager);
+
+        },
+        loadGLTF(url) {
+            this.loaders.gltf.load(url, (gltf) => {
+                this.scene.remove(this.primaryModel)
+                this.primaryModel = gltf.scene
+                this.scene.add(this.primaryModel)
+            }, (xhr) => {
+                console.log((xhr.loaded / xhr.total*100).toFixed(2)  + '% loaded');
+            }, (error) => {
+                console.log("Failed to load gltf model: " + error);
+            });
+        },
+        loadOBJ(obj, mtl) {
+            this.loaders.mtl.load(mtl, (mat) => {
+                this.loaders.obj.setMaterials(mat);
+
+                this.loaders.obj.load(obj, (model) => {
+                    this.scene.remove(this.primaryModel)
+                    this.primaryModel = model
+                    this.scene.add(this.primaryModel)
+                }, (xhr) => {
+                    console.log((xhr.loaded / xhr.total*100).toFixed(2)  + '% loaded');
+                }, (error) => {
+                    console.log("Failed to load obj model: " + error);
+                });
+            }, (xhr) => {
+                console.log((xhr.loaded / xhr.total*100).toFixed(2)  + '% loaded');
+            }, (error) => {
+                console.log("Failed to load mtl: " + error);
+            });
+        },
+        configureURLOverride() {
+            this.loaders.manager.setURLModifier((url) => {
+                let filename = url.split("/").pop()
+                let override = this.fileMap.get(filename)
+                if(override) {
+                    return override
+                }
+                //a fix to a weird bug where the glb file will continue looking
+                //for more files even though it has already loaded in
+                //I suspect it has to do with the nexttick method
+                if(this.fileExt != "glb") {
+                    this.missingFiles.push(filename)
+                }
+                return url
+            })
+        },
+        setInitialTabState() {
+            this.currentTab = this.tabStates.UPLOAD
         },
     },
     mounted() {
@@ -241,7 +345,6 @@ export default {
             this.init()
             this.animate()
         })
-
     },
     updated() {
     },

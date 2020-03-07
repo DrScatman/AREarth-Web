@@ -250,7 +250,7 @@ function loadModel({files}) {
     console.log("dropped", files);
     setFileType(files);
     mapFilesToURL(files);
-    if(dropzone.filetype === "gltf") {
+    if(dropzone.filetype === "gltf" || dropzone.filetype === "glb") {
         loadGLTFModel(filesBundle.mainFile);
     }
     if(dropzone.filetype === "obj") {
