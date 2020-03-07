@@ -69,12 +69,25 @@
               </v-btn>
               <v-dialog v-model="uploadDialog" max-width="1200">
                   <v-card>
+                      <v-overlay z-index="9999" absolute v-model="loadingModel">
+                          <p class="pa-4 text-center black lime--text lighten-3 display-2  rounded-border">Loading assets please wait
+                          <v-progress-circular indeterminate color="lime accent-3" width="15" size="100">
+                          </v-progress-circular>
+                          </p>
+                      </v-overlay>
+
                       <v-card-title>Upload</v-card-title>
                       <v-divider class="my-4"></v-divider>
                       <v-card-subtitle>Supported model formats: glTF, glb, obj</v-card-subtitle>
                       <v-card-subtitle class="red--text" v-if="missingFiles.length > 0" v-model="missingFiles">Missing Files: {{missingFiles.toString().replace(/,/g, ", ")}}</v-card-subtitle>
                       <v-card-subtitle class="light-green--text" v-if="primaryFileName && missingFiles.length === 0">Success!</v-card-subtitle>
-                      <vue-dropzone ref="dropzone" id="dropzone" :options="dropzoneOptions" @vdropzone-file-added="vFileAdded" @vdropzone-removed-file="vFileRemoved"></vue-dropzone>
+
+                      <vue-dropzone ref="dropzone" id="dropzone" :options="dropzoneOptions" @vdropzone-file-added="vFileAdded" @vdropzone-removed-file="vFileRemoved" useCustomSlot>
+                          <div class="dropzone-custom-content">
+                              <h3 class="dropzone-custom-title">Drag and drop to upload content!</h3>
+                              <div class="subtitle">...or click to select a file from your computer</div>
+                          </div>
+                      </vue-dropzone>
 
                   <v-card-actions>
                       <v-btn color="error" @click="vRemoveAllFiles">Remove all files</v-btn>
@@ -122,8 +135,11 @@
       </v-navigation-drawer>
       <v-footer app inset>
           <v-row>
-              <v-col>
-                  cool info here
+              <v-col class="text-center">
+                  Left Mouse: Rotate model
+              </v-col>
+              <v-col class="text-center">
+                  Scroll: Zoom in and out
               </v-col>
           </v-row>
       </v-footer>
@@ -139,6 +155,14 @@ import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 
 import vue2Dropzone from 'vue2-dropzone'
 
+import {
+    lobby1,
+    lobby2,
+    hallway1
+} from './cubemaps.js';
+
+
+
 export default {
     name: 'Viewer',
     components: {
@@ -152,6 +176,12 @@ export default {
             CONTENT: "content",
             FINISH: "finish",
         },
+
+        cubemaps: [
+            lobby1,
+            lobby2,
+            hallway1,
+        ],
 
         //depends on what firebase has
         locations: [
@@ -173,58 +203,39 @@ export default {
         currentLocation: null,
         helpDialog: false,
         uploadDialog: false,
+        loadingModel: false,
 
         loaders: {
             manager: null,
             gltf: null,
             obj: null,
             mtl: null,
+            cubemap: null,
         },
 
-        //uploadedFiles: [],
         fileMap: new Map(),
         primaryFileName: null,
         mtlFileName: "",
         fileExt: null,
         missingFiles: [],
 
+        currentCubemap: null,
+
         dropzoneOptions: {
             url: "no_post",
             autoProcessQueue: false,
             acceptedFiles: ".obj,.mtl,.gltf,.bin,.glb,image/png,image/jpeg,image/jpg",
-            addRemoveLinks: true,
         },
     }),
 
     methods: {
         init() {
-            let canvas = document.querySelector("#webgl-canvas")
-            let viewer = document.querySelector("#viewer")
-            let w = viewer.clientWidth
-            let h = viewer.clientHeight
-            this.camera = new THREE.PerspectiveCamera(70, w/h, 0.01, 10000)
-            this.camera.position.set(2, 2, 2)
-            this.scene = new THREE.Scene()
-            let hemis = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
-            this.scene.add(hemis);
-
             this.addListeners()
             this.setInitialTabState()
             this.instantiateLoaders()
             this.configureURLOverride()
-
-            let geometry = new THREE.BoxGeometry(2, 2, 2)
-            let material = new THREE.MeshPhongMaterial()
-            this.primaryModel = new THREE.Mesh(geometry, material)
-            this.scene.add(this.primaryModel)
-
-            this.renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true})
-            this.renderer.setClearColor(0x777799, 1);
-            this.renderer.outputEncoding = THREE.sRGBEncoding;
-            this.controls = new OrbitControls( this.camera, this.renderer.domElement )
-            this.controls.update()
-            this.renderer.setSize(w, h, false)
-
+            this.setupScene()
+            this.addDefaultCube()
         },
         animate() {
             requestAnimationFrame(this.animate)
@@ -271,7 +282,7 @@ export default {
                     }
                 }
                 else {
-                    console.log("missing primary file")
+                    //console.log("missing primary file")
                 }
             })
         },
@@ -280,24 +291,64 @@ export default {
         },
         vRemoveAllFiles() {
             this.$refs.dropzone.removeAllFiles()
+            this.resetUploadState()
+        },
+        resetUploadState() {
             this.scene.remove(this.primaryModel)
+
+            //resets default values
+            this.primaryFileName = null
+            this.primaryModel = null
+            this.fileExt = null
+            this.fileMap.clear()
+            this.mtlFileName = ""
+            this.missingFiles = []
+
+            this.addDefaultCube()
+        },
+        addDefaultCube() {
+            let geometry = new THREE.BoxGeometry(2, 2, 2)
+            let material = new THREE.MeshPhongMaterial()
+            this.primaryModel = new THREE.Mesh(geometry, material)
+            this.camera.position.set(2, 2, 2)
+            this.scene.add(this.primaryModel)
         },
         instantiateLoaders() {
             this.loaders.manager = new THREE.LoadingManager()
             this.loaders.gltf = new GLTFLoader(this.loaders.manager)
             this.loaders.obj = new OBJLoader(this.loaders.manager);
             this.loaders.mtl = new MTLLoader(this.loaders.manager);
-
+            this.loaders.cubemap = new THREE.CubeTextureLoader();
         },
         loadGLTF(url) {
             this.loaders.gltf.load(url, (gltf) => {
                 this.scene.remove(this.primaryModel)
                 this.primaryModel = gltf.scene
                 this.scene.add(this.primaryModel)
+
+                this.setCameraToModel()
+                this.centerModel()
+
+                this.primaryModel.traverse((child) => {
+                    if(child.isMesh) {
+                        //sometimes a mesh has a basicmaterial which will cause it to
+                        //be completely reflective which is incorrect
+                        if(child.material instanceof THREE.MeshStandardMaterial) {
+                            child.material.envMap = this.currentCubemap
+                        }
+                    }
+                })
+
+                this.uploadDialog = false
+                this.loadingModel = false
+
             }, (xhr) => {
-                console.log((xhr.loaded / xhr.total*100).toFixed(2)  + '% loaded');
+                let percentLoaded = (xhr.loaded / xhr.total*100).toFixed(2)
+                console.log(percentLoaded  + '% loaded');
+                this.loadingModel = true
             }, (error) => {
                 console.log("Failed to load gltf model: " + error);
+                this.loadingModel = false
             });
         },
         loadOBJ(obj, mtl) {
@@ -308,10 +359,19 @@ export default {
                     this.scene.remove(this.primaryModel)
                     this.primaryModel = model
                     this.scene.add(this.primaryModel)
+
+                    this.setCameraToModel()
+                    this.centerModel()
+
+                    this.uploadDialog = false
+                    this.loadingModel = false
                 }, (xhr) => {
-                    console.log((xhr.loaded / xhr.total*100).toFixed(2)  + '% loaded');
+                    let percentLoaded = (xhr.loaded / xhr.total*100).toFixed(2)
+                    console.log(percentLoaded  + '% loaded');
+                    this.loadingModel = true
                 }, (error) => {
                     console.log("Failed to load obj model: " + error);
+                    this.loadingModel = false
                 });
             }, (xhr) => {
                 console.log((xhr.loaded / xhr.total*100).toFixed(2)  + '% loaded');
@@ -337,6 +397,51 @@ export default {
         },
         setInitialTabState() {
             this.currentTab = this.tabStates.UPLOAD
+        },
+        setupScene() {
+            let canvas = document.querySelector("#webgl-canvas")
+            let viewer = document.querySelector("#viewer")
+            let w = viewer.clientWidth
+            let h = viewer.clientHeight
+            this.camera = new THREE.PerspectiveCamera(70, w/h, 0.01, 10000)
+            this.camera.position.set(2, 2, 2)
+            this.scene = new THREE.Scene()
+            let hemis = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
+            this.scene.add(hemis);
+
+            this.renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true})
+            this.renderer.setClearColor(0x777799, 1);
+            this.renderer.outputEncoding = THREE.sRGBEncoding;
+            this.renderer.setSize(w, h, false)
+
+            this.controls = new OrbitControls(this.camera, this.renderer.domElement)
+            this.controls.enablePan = false
+            this.controls.update()
+            this.loadCubemap(this.cubemaps[2])
+        },
+        setCameraToModel() {
+            const box = new THREE.Box3().setFromObject(this.primaryModel);
+            const radius = box.getBoundingSphere(new THREE.Sphere()).radius;
+            this.camera.position.set(radius, radius/4, radius)
+        },
+        centerModel() {
+            const box = new THREE.Box3().setFromObject(this.primaryModel);
+            const center = box.getCenter(new THREE.Vector3());
+            this.primaryModel.position.x += (this.primaryModel.position.x - center.x);
+            this.primaryModel.position.y += (this.primaryModel.position.y - center.y);
+            this.primaryModel.position.z += (this.primaryModel.position.z - center.z);
+        },
+        loadCubemap(cubemap) {
+            this.currentCubemap = this.loaders.cubemap.load([
+                cubemap[0],
+                cubemap[1],
+                cubemap[2],
+                cubemap[3],
+                cubemap[4],
+                cubemap[5],
+            ])
+            this.currentCubemap.encoding = THREE.sRGBEncoding;
+            this.scene.background = this.currentCubemap
         },
     },
     mounted() {
@@ -379,18 +484,33 @@ export default {
     margin-top: 12px;
 }
 
-#dragdrop {
-    height: 400px;
-    width: 100%;
-    border: 1px solid white;
-}
-
 .dz-progress {
     display: none;
 }
 
 #dropzone {
-    height: 50vh;
+    min-height: 50vh;
+}
+
+.rounded-border {
+    border-radius: 10px;
+}
+
+.dropzone-custom-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.dropzone-custom-title {
+  margin-top: 0;
+  color: #00b782;
+}
+
+.subtitle {
+  color: #314b5f;
 }
 
 </style>
