@@ -90,7 +90,7 @@
                       </vue-dropzone>
 
                   <v-card-actions>
-                      <v-btn color="error" @click="vRemoveAllFiles">Remove all files</v-btn>
+                      <v-btn color="error" @click="removeAllFiles">Remove all files</v-btn>
                       <v-spacer></v-spacer>
                       <v-btn color="success" @click="uploadDialog = false">Done</v-btn>
                   </v-card-actions>
@@ -102,6 +102,8 @@
                       <v-list-item-title>File Information goes below once loaded</v-list-item-title>
                       <v-list-item-content>Filetype: </v-list-item-content>
                   </v-list-item>
+                  <v-btn large color="red" @click="exportToStorage">Export</v-btn>
+                  <v-btn large color="green" @click="downloadFromStorage">Download alien</v-btn>
               </v-list>
           </v-container>
           <v-container  v-if="currentTab==tabStates.LOCATION" class="pa-4" fluid>
@@ -152,8 +154,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter';
 
 import vue2Dropzone from 'vue2-dropzone'
+
+import { Storage } from './db-init.js'
 
 import {
     lobby1,
@@ -220,6 +225,8 @@ export default {
         missingFiles: [],
 
         currentCubemap: null,
+
+        storageRef: Storage.ref(),
 
         dropzoneOptions: {
             url: "no_post",
@@ -289,9 +296,10 @@ export default {
         vFileRemoved() {
             console.log("removed file")
         },
-        vRemoveAllFiles() {
+        removeAllFiles() {
             this.$refs.dropzone.removeAllFiles()
             this.resetUploadState()
+            this.addDefaultCube()
         },
         resetUploadState() {
             this.scene.remove(this.primaryModel)
@@ -300,11 +308,10 @@ export default {
             this.primaryFileName = null
             this.primaryModel = null
             this.fileExt = null
-            this.fileMap.clear()
             this.mtlFileName = ""
             this.missingFiles = []
 
-            this.addDefaultCube()
+            this.clearFileMap()
         },
         addDefaultCube() {
             let geometry = new THREE.BoxGeometry(2, 2, 2)
@@ -339,6 +346,7 @@ export default {
                     }
                 })
 
+                this.clearFileMap()
                 this.uploadDialog = false
                 this.loadingModel = false
 
@@ -363,6 +371,17 @@ export default {
                     this.setCameraToModel()
                     this.centerModel()
 
+                    this.primaryModel.traverse((child) => {
+                        if(child.isMesh) {
+                            //sometimes a mesh has a basicmaterial which will cause it to
+                            //be completely reflective which is incorrect
+                            if(child.material instanceof THREE.MeshStandardMaterial) {
+                                child.material.envMap = this.currentCubemap
+                            }
+                        }
+                    })
+
+                    this.clearFileMap()
                     this.uploadDialog = false
                     this.loadingModel = false
                 }, (xhr) => {
@@ -389,6 +408,7 @@ export default {
                 //a fix to a weird bug where the glb file will continue looking
                 //for more files even though it has already loaded in
                 //I suspect it has to do with the nexttick method
+                //or the url gets split based on file size
                 if(this.fileExt != "glb") {
                     this.missingFiles.push(filename)
                 }
@@ -443,6 +463,48 @@ export default {
             this.currentCubemap.encoding = THREE.sRGBEncoding;
             this.scene.background = this.currentCubemap
         },
+        clearFileMap() {
+            this.fileMap.forEach((url) => {
+                console.log("revoking url: ", url)
+                URL.revokeObjectURL(url)
+            })
+            this.fileMap.clear()
+        },
+        exportToStorage() {
+            if(this.primaryFileName) {
+                const exporter = new GLTFExporter()
+                const options = {
+                    trs: true,
+                    binary: true,
+                }
+                exporter.parse(this.primaryModel, (gltf) => {
+                    let buffer = new Uint8Array(gltf)
+                    let filename = this.primaryFileName.split('.')[0]
+                    let directory = ""
+                    let uploadTask = this.storageRef.child(directory + filename + ".glb").put(buffer)
+                    uploadTask.on('state_changed', (snapshot) => {
+                        let progress = Math.floor(((snapshot.bytesTransferred / snapshot.totalBytes) * 100))
+                        console.log("Upload progress: " + progress + "%")
+                    }, (error) => {
+                        console.log("Upload Failed!" + error.message)
+
+                    }, () => {
+                        console.log("Upload success!")
+                    })
+                }, options)
+            }
+            else {
+                console.log("You can't upload the default cube!")
+            }
+        },
+        downloadFromStorage() {
+            this.storageRef.child("alien.glb").getDownloadURL().then((url) => {
+                this.loadGLTF(url)
+                console.log("firebase url download success")
+            }).catch((error) => {
+                console.log("failed to download: " + error.message)
+            })
+        }
     },
     mounted() {
         //fixes canvas centering issue
@@ -490,6 +552,10 @@ export default {
 
 #dropzone {
     min-height: 50vh;
+}
+
+.dz-drag-hover {
+    background-color: lightgreen !important;
 }
 
 .rounded-border {
