@@ -381,7 +381,8 @@ export default {
                         }
                     })
 
-                    this.clearFileMap()
+                    //clears before finish using
+                    //this.clearFileMap()
                     this.uploadDialog = false
                     this.loadingModel = false
                 }, (xhr) => {
@@ -476,9 +477,10 @@ export default {
                 const options = {
                     trs: true,
                     binary: true,
-                }
+               }
                 exporter.parse(this.primaryModel, (gltf) => {
                     let buffer = new Uint8Array(gltf)
+                    //let filename = this.primaryFileName.split('.')[0]
                     let filename = this.primaryFileName.split('.')[0]
                     let directory = ""
                     let uploadTask = this.storageRef.child(directory + filename + ".glb").put(buffer)

@@ -1,16 +1,18 @@
 <template>
   <v-app>
-      <Viewer/>
+      <Login/>
   </v-app>
 </template>
 
 <script>
-import Viewer from './components/Viewer';
+//import Viewer from './components/Viewer';
+import Login from './components/Login';
 
 export default {
     name: 'App',
     components: {
-        Viewer,
+        Login,
+        //Viewer,
     },
 
 
