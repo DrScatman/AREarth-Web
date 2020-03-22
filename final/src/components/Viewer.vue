@@ -3,6 +3,7 @@
       <v-app-bar app clipped-right>
           <v-toolbar-title id="project-name" class="font-weight-bold display-1 px-4">Project Name</v-toolbar-title>
           <v-spacer></v-spacer>
+          <v-btn large color="blue" @click.stop="logout">Logout</v-btn>
           <v-btn large color="red" @click.stop="helpDialog = true">HELP<v-icon class="ml-2">mdi-help-circle-outline</v-icon></v-btn>
           <v-dialog v-model="helpDialog" max-width="1200">
               <v-card class="pa-4">
@@ -158,7 +159,8 @@ import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter';
 
 import vue2Dropzone from 'vue2-dropzone'
 
-import { Storage } from './db-init.js'
+import { Storage, AppAuth } from './db-init.js'
+
 
 import {
     lobby1,
@@ -506,7 +508,13 @@ export default {
             }).catch((error) => {
                 console.log("failed to download: " + error.message)
             })
-        }
+        },
+        logout() {
+            AppAuth.signOut().then(() => {
+                console.log("Signed out");
+            });
+        },
+
     },
     mounted() {
         //fixes canvas centering issue
@@ -514,6 +522,18 @@ export default {
             this.init()
             this.animate()
         })
+    },
+    created() {
+        AppAuth.onAuthStateChanged((u) => {
+            if (u == null) {
+                console.log("viewer - not logged in")
+                this.$router.push({ path: "/Login" })
+            }
+            else {
+                console.log("viewer - is logged in as: " + u.uid)
+                this.isLoggedIn = true
+            }
+        });
     },
     updated() {
     },

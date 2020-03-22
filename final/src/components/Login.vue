@@ -113,7 +113,7 @@ export default {
                 .then((u) => {
                     console.log("User created with UID " + u.user.uid);
                     AppDB.ref('users/' + u.user.uid).set({
-                        firstName: this.firstName, 
+                        firstName: this.firstName,
                         lastName: this.lastName,
                     })
                     this.createDialog = false
@@ -140,7 +140,7 @@ export default {
             else {
                 console.log("is logged in as: " + u.uid)
                 this.isLoggedIn = true
-                //go to the next page automatically
+                this.$router.push({ path: "/" })
             }
         });
     },
