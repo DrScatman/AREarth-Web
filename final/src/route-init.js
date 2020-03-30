@@ -28,10 +28,14 @@ AppRouter.beforeEach(async (to, from, next) => {
     if(to.name !== 'Login' && !user) {
         next({name: 'Login'});
     }
-    else if(to.name === 'Login' && user) {
+    else if(to.name !== 'Login' && !user.emailVerified) {
+        next({name: 'Login'});
+    }
+    else if(to.name === 'Login' && user && user.emailVerified) {
         next({name: 'Viewer'})
     }
     else {
+        console.log("no where to go")
         next()
     }
 })
