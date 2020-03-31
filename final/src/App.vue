@@ -1,12 +1,14 @@
 <template>
-      <router-view />
+    <Container />
 </template>
 
 <script>
+import Container from './components/Container'
 
 export default {
     name: 'App',
     components: {
+        Container: Container
     },
 
     data: () => ({
