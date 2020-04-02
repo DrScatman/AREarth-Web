@@ -41,15 +41,16 @@
             </v-container>
         </v-content>
         <v-footer app height="75">
-            <v-btn color="blue" @click="prevStep">Back</v-btn>
+            <v-btn color="blue" @click="prevStep" :disabled="step < 2">Back</v-btn>
             <v-spacer></v-spacer>
-            <v-btn color="blue" @click="nextStep">Continue</v-btn>
+            <v-btn color="blue" @click="nextStep" :disabled="step === steps.length">Continue</v-btn>
         </v-footer>
     </v-app>
 </template>
 
 <script>
 import Location from './Location'
+import { AppDB, Storage } from './db-init.js'
 
 export default {
     name: 'Container',
@@ -73,6 +74,48 @@ export default {
         }
     },
     mounted() {
+        //logged in out listeners
+        /*
+        AppAuth.onAuthStateChanged((u) => {
+            if (u == null) {
+                console.log("viewer - not logged in")
+                this.$router.push({ name: "Login" }).catch(e => {
+                    console.log('viewer push error:' + e);
+                })
+            }
+            else {
+                console.log("viewer - is logged in as: " + u.uid)
+                this.isLoggedIn = true
+            }
+        });
+        */
+
+        AppDB.ref('/locations/').once('value').then((snapshot) => {
+            let locations = snapshot.val()
+            this.$store.commit('setLocations', locations)
+        }).then(() => {
+            console.log("ignore", Storage)
+            /*
+            const locations = this.$store.getters.locations
+            const keys = Object.keys(locations)
+            keys.forEach((key) => {
+                let p1 = Storage.ref().child(`cubemaps/${key}/px.png`).getDownloadURL()
+                let p2 = Storage.ref().child(`cubemaps/${key}/nx.png`).getDownloadURL()
+                let p3 = Storage.ref().child(`cubemaps/${key}/py.png`).getDownloadURL()
+                let p4 = Storage.ref().child(`cubemaps/${key}/ny.png`).getDownloadURL()
+                let p5 = Storage.ref().child(`cubemaps/${key}/pz.png`).getDownloadURL()
+                let p6 = Storage.ref().child(`cubemaps/${key}/nz.png`).getDownloadURL()
+                Promise.all([p1, p2, p3, p4, p5, p6]).then((urls) => {
+                    if(urls.length == 6) {
+                        let payload = { location: key, urls: urls }
+                        this.$store.commit('setLocationCubemap', payload)
+                    }
+                }).catch((err) => {
+                    console.log("Error: ", err)
+                })
+            })
+            */
+        })
     },
 }
 </script>

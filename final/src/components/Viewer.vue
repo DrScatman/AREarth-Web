@@ -161,14 +161,11 @@ import vue2Dropzone from 'vue2-dropzone'
 
 import { Storage, AppAuth } from './db-init.js'
 
-
 import {
     lobby1,
     lobby2,
     hallway1
 } from './cubemaps.js';
-
-
 
 export default {
     name: 'Viewer',
