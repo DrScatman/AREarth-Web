@@ -1,11 +1,152 @@
 <template>
-    <v-container fluid>
+    <v-app>
+        <v-app-bar app clipped-right>
+            <v-toolbar-title id="project-name" class="font-weight-bold display-1 px-4">Project Name</v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-btn large color="blue" @click.stop="logout">Logout</v-btn>
+            <v-btn large color="red" @click.stop="helpDialog = true">HELP<v-icon class="ml-2">mdi-help-circle-outline</v-icon></v-btn>
+            <v-dialog v-model="helpDialog" max-width="1200">
+                <v-card class="pa-4">
+                    <v-card-title>Help Menu</v-card-title>
+                    <v-card-text>
+                        What do you need help with?
+                    </v-card-text>
+                    <v-expansion-panels accordion focusable inset>
+                        <v-expansion-panel>
+                            <v-expansion-panel-header>I am lost or confused</v-expansion-panel-header>
+                            <v-expansion-panel-content>
+                                <p>Follow this tutorial!</p>
+                                <p>Could be a youtube video or a gif</p>
+                                <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/ZvQEHLA1o8M" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </v-expansion-panel-content>
+                        </v-expansion-panel>
+                        <v-expansion-panel>
+                            <v-expansion-panel-header>Uploading a model</v-expansion-panel-header>
+                            <v-expansion-panel-content>
+                                <p>Follow this tutorial!</p>
+                                <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/2kWupMxAmDA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </v-expansion-panel-content>
+                        </v-expansion-panel>
+                        <v-expansion-panel>
+                            <v-expansion-panel-header>Issue 3</v-expansion-panel-header>
+                            <v-expansion-panel-content>
+                                <p>Follow this tutorial!</p>
+                                <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/L1S-RkuQxxo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </v-expansion-panel-content>
+                        </v-expansion-panel>
+                        <v-expansion-panel>
+                            <v-expansion-panel-header>Issue 4</v-expansion-panel-header>
+                            <v-expansion-panel-content>
+                                <p>Follow this tutorial!</p>
+                            </v-expansion-panel-content>
+                        </v-expansion-panel>
+                    </v-expansion-panels>
+                    <v-divider class="my-4"></v-divider>
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn large color="green" @click.stop="helpDialog = false">Done</v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
+            <template v-slot:extension>
+                <v-tabs centered background-color="#444444" grow color="lime accent-3" show-arrows >
+                    <v-tab class="tab-hover font-weight-black" @click="currentTab = state" v-for="(state, key) in tabStates" :key="key">{{ state }}</v-tab>
+                </v-tabs>
+            </template>
+        </v-app-bar>
         <v-content class="fill-height">
             <v-container id="viewer" class="fill-height ma-0 pa-0" fluid>
                 <canvas id="webgl-canvas"></canvas>
             </v-container>
         </v-content>
-    </v-container>
+        <v-navigation-drawer app right clipped disable-resize-watcher permanent width="400"  >
+            <v-card>
+                <v-card-title class="text-uppercase" v-model="currentTab">{{currentTab}}</v-card-title>
+            </v-card>
+            <v-container  v-if="currentTab==tabStates.UPLOAD" class="pa-4" fluid>
+                <v-btn color="blue-grey" class="ma-2 white--text" @click="uploadDialog = true">
+                    Upload Model
+                    <v-icon right dark>mdi-cloud-upload</v-icon>
+                </v-btn>
+                <v-dialog v-model="uploadDialog" max-width="1200">
+                    <v-card>
+                        <v-overlay z-index="9999" absolute v-model="loadingModel">
+                            <p class="pa-4 text-center black lime--text lighten-3 display-2  rounded-border">Loading assets please wait
+                            <v-progress-circular indeterminate color="lime accent-3" width="15" size="100">
+                            </v-progress-circular>
+                            </p>
+                        </v-overlay>
+
+                        <v-card-title>Upload</v-card-title>
+                        <v-divider class="my-4"></v-divider>
+                        <v-card-subtitle>Supported model formats: glTF, glb, obj</v-card-subtitle>
+                        <v-card-subtitle class="red--text" v-if="missingFiles.length > 0" v-model="missingFiles">Missing Files: {{missingFiles.toString().replace(/,/g, ", ")}}</v-card-subtitle>
+                        <v-card-subtitle class="light-green--text" v-if="primaryFileName && missingFiles.length === 0">Success!</v-card-subtitle>
+
+                        <vue-dropzone ref="dropzone" id="dropzone" :options="dropzoneOptions" @vdropzone-file-added="vFileAdded" @vdropzone-removed-file="vFileRemoved" useCustomSlot>
+                            <div class="dropzone-custom-content">
+                                <h3 class="dropzone-custom-title">Drag and drop to upload content!</h3>
+                                <div class="subtitle">...or click to select a file from your computer</div>
+                            </div>
+                        </vue-dropzone>
+
+                        <v-card-actions>
+                            <v-btn color="error" @click="removeAllFiles">Remove all files</v-btn>
+                            <v-spacer></v-spacer>
+                            <v-btn color="success" @click="uploadDialog = false">Done</v-btn>
+                        </v-card-actions>
+                    </v-card>
+                </v-dialog>
+                <v-divider class="my-4"></v-divider>
+                <v-list>
+                    <v-list-item>
+                        <v-list-item-title>File Information goes below once loaded</v-list-item-title>
+                        <v-list-item-content>Filetype: </v-list-item-content>
+                    </v-list-item>
+                    <v-btn large color="red" @click="exportToStorage">Export</v-btn>
+                    <v-btn large color="green" @click="downloadFromStorage">Download alien</v-btn>
+                </v-list>
+            </v-container>
+            <v-container  v-if="currentTab==tabStates.LOCATION" class="pa-4" fluid>
+                <v-subheader>Select a library location:</v-subheader>
+                <v-radio-group v-model="currentLocation">
+                    <v-radio v-for="(location, key) in locations" :key="key" :label="location" :value="location" color="lime accent-3"></v-radio>
+                </v-radio-group>
+            </v-container>
+            <v-container  v-if="currentTab==tabStates.SETTINGS" class="pa-4" fluid>
+                <v-list>
+                    <v-list-item>
+                        settings options
+                    </v-list-item>
+                </v-list>
+            </v-container>
+            <v-container  v-if="currentTab==tabStates.CONTENT" class="pa-4" fluid>
+                <v-list>
+                    <v-list-item>
+                        content options
+                    </v-list-item>
+                </v-list>
+            </v-container>
+            <v-container  v-if="currentTab==tabStates.FINISH" class="pa-4" fluid>
+                <v-list>
+                    <v-list-item>
+                        finish options
+                    </v-list-item>
+                </v-list>
+            </v-container>
+
+        </v-navigation-drawer>
+        <v-footer app inset>
+            <v-row>
+                <v-col class="text-center">
+                    Left Mouse: Rotate model
+                </v-col>
+                <v-col class="text-center">
+                    Scroll: Zoom in and out
+                </v-col>
+            </v-row>
+        </v-footer>
+    </v-app>
 </template>
 
 <script>
@@ -16,10 +157,9 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter';
 
-//import vue2Dropzone from 'vue2-dropzone'
+import vue2Dropzone from 'vue2-dropzone'
 
 import { Storage, AppAuth } from './db-init.js'
-
 
 import {
     lobby1,
@@ -27,12 +167,10 @@ import {
     hallway1
 } from './cubemaps.js';
 
-
-
 export default {
     name: 'Viewer',
     components: {
-        //vueDropzone: vue2Dropzone
+        vueDropzone: vue2Dropzone
     },
     data: () => ({
         tabStates: {

@@ -1,5 +1,5 @@
 import Login from "@/components/Login.vue";
-import Viewer from "@/components/Viewer.vue";
+import Container from "@/components/Container.vue";
 import Vue from "vue";
 import VueRouter from "vue-router";
 
@@ -8,7 +8,7 @@ import { AppAuth } from './components/db-init.js'
 Vue.use(VueRouter);
 
 const routeTable = [
-    { path: "/", name: "Viewer", component: Viewer },
+    { path: "/", name: "Container", component: Container },
     { path: "/Login", name: "Login", component: Login }
 ];
 
@@ -32,7 +32,7 @@ AppRouter.beforeEach(async (to, from, next) => {
         next({name: 'Login'});
     }
     else if(to.name === 'Login' && user && user.emailVerified) {
-        next({name: 'Viewer'})
+        next({name: 'Container'})
     }
     else {
         console.log("no where to go")

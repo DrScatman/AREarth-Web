@@ -8,7 +8,7 @@
                 <v-card-actions>
                     <v-card-text>{{location.description}}</v-card-text>
                     <v-spacer></v-spacer>
-                    <v-btn @click.stop="previewLocation(index)" color="blue">Preview</v-btn>
+                    <v-btn :disabled="!(urlsAtLocation(index))" @click.stop="previewLocation(index)" color="blue">preview</v-btn>
                 </v-card-actions>
             </v-card>
         </template>
@@ -16,8 +16,13 @@
             <v-card>
                 <v-card-title>{{previewLocationName}}</v-card-title>
                 <v-divider></v-divider>
-                <v-container id="viewer" fluid>
-                    <canvas class="fill-height fill-width" id="webgl-canvas"></canvas>
+                <v-container id="preview-viewer" fluid>
+                    <v-overlay absolute color="black" opacity="1" v-model="previewLoading">
+                        <v-card-text v-model="previewLocationName">
+                            Loading: {{previewLocationName}}
+                        </v-card-text>
+                    </v-overlay>
+                    <canvas class="fill-height fill-width" id="webgl-canvas-preview"></canvas>
                 </v-container>
                 <v-divider></v-divider>
                 <v-card-actions>
@@ -37,11 +42,7 @@ import {
     PerspectiveCamera,
     sRGBEncoding,
     Scene,
-    BoxGeometry,
-    //MeshPhongMaterial,
-    Mesh,
-    HemisphereLight,
-    MeshNormalMaterial
+    CubeTextureLoader,
 } from 'three'
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
@@ -52,30 +53,24 @@ export default {
     },
     data: () => ({
         previewDialog: false,
+        previewLoading: true,
         previewLocationName: "",
 
         renderer: null,
         camera: null,
         controls: null,
         scene: null,
+        cubemapLoader: new CubeTextureLoader(),
     }),
     methods: {
         init() {
-            let canvas = document.querySelector("#webgl-canvas")
-            let viewer = document.querySelector("#viewer")
+            let canvas = document.querySelector("#webgl-canvas-preview")
+            let viewer = document.querySelector("#preview-viewer")
             this.scene = new Scene()
-
-            let hemis = new HemisphereLight(0xffffbb, 0x080820, 1);
-            this.scene.add(hemis);
-            let geometry = new BoxGeometry(2, 2, 2)
-            let material = new MeshNormalMaterial()
-            let cube = new Mesh(geometry, material)
-            this.scene.add(cube)
-
             let w = viewer.clientWidth
             let h = viewer.clientHeight
             this.camera = new PerspectiveCamera(70, w/h, 0.01, 10000)
-            this.camera.position.set(3, 3, 3)
+            this.camera.position.set(2, 0, 2)
             this.renderer = new WebGLRenderer({canvas: canvas, antialias: true})
             this.renderer.setClearColor(0x0, 1);
             this.renderer.outputEncoding = sRGBEncoding;
@@ -95,23 +90,43 @@ export default {
             this.previewDialog = true
             this.previewLocationName = this.locations[loc].name
             this.$nextTick(() => {
-                let viewer = document.querySelector("#viewer")
+                let viewer = document.querySelector("#preview-viewer")
                 let w = viewer.clientWidth
                 let h = viewer.clientHeight
                 this.camera.aspect = w/h
                 this.camera.updateProjectionMatrix()
                 this.renderer.setSize(w, h, false)
-                console.log(this.locations)
-                //this.scene.background = 
+                let urls = this.locations[loc]['urls']
+                if(!urls) {
+                    console.log("no preview available")
+                    return
+                }
+                let texture = this.locations[loc]['texture']
+                if(!texture) {
+                    this.previewLoading = true
+                    texture = this.cubemapLoader.load([
+                        urls[0],
+                        urls[1],
+                        urls[2],
+                        urls[3],
+                        urls[4],
+                        urls[5]
+                    ], () => {
+                        console.log("done loading texture")
+                        this.previewLoading = false
+                        let payload = {location: loc, texture: texture}
+                        this.$store.commit('setLocationCubemapTexture', payload)
+                    })
+                }
+                this.scene.background = texture
             })
             console.log("preview location: ", loc)
         },
         selectLocation(loc) {
             this.$store.commit('setSelectedLocation', loc)
-            console.log(this.selectedLocation)
         },
         onWindowResize() {
-            let viewer = document.querySelector("#viewer")
+            let viewer = document.querySelector("#preview-viewer")
             if(viewer) {
                 let w = viewer.clientWidth
                 let h = viewer.clientHeight
@@ -119,6 +134,9 @@ export default {
                 this.camera.updateProjectionMatrix()
                 this.renderer.setSize(w, h, false)
             }
+        },
+        urlsAtLocation(loc) {
+            return ('urls' in this.locations[loc])
         },
     },
     mounted() {
@@ -146,7 +164,7 @@ export default {
     color: black !important;
 }
 
-#viewer {
+#preview-viewer {
     height: 600px;
     width: 1000px;
 }

@@ -218,10 +218,8 @@ export default {
                 this.logout()
             }
             else {
-                //console.log(u)
-                //console.log("is logged in as: " + u.uid)
                 this.isLoggedIn = true
-                this.$router.push({ name: "Viewer" }).catch((e) => {
+                this.$router.push({ name: "Container" }).catch((e) => {
                     console.log('login router error: ', e);
                 })
             }

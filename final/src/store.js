@@ -3,17 +3,23 @@ import Vuex from 'vuex'
 
 import {
     Scene,
-    //CubeTextureLoader,
-    //sRGBEncoding,
+    sRGBEncoding,
 } from 'three'
 
 Vue.use(Vuex);
 
 export const store = new Vuex.Store({
     state: {
+        //selected location by user for model location by location id
         selectedLocation: "",
+
+        //scene used for rendering the uploading and modifying
         scene: new Scene(),
+
+        //object that bundles locations with a key of the id
+        //to get name, description, urls, and texture
         locations: null,
+
     },
     getters: {
         locations: (state) => {
@@ -33,27 +39,16 @@ export const store = new Vuex.Store({
         setLocations: (state, locs) => {
             state.locations = locs
         },
-        setLocationCubemap: (state, payload) => {
-            console.log(payload)
+        setLocationUrls: (state, payload) => {
             let loc = payload['location']
             let urls = payload['urls']
             state.locations[loc]['urls'] = urls
-            console.log(state.locations)
-            /*
-            let loader = new CubeTextureLoader();
-            state.locations[loc]['cubemap'] = loader.load([
-                urls[0],
-                urls[1],
-                urls[2],
-                urls[3],
-                urls[4],
-                urls[5],
-            ], () => {
-                console.log("done")
-                state.locations[loc]['cubemap'].encoding = sRGBEncoding
-                console.log(state.locations)
-            })
-            */
-        }
+        },
+        setLocationCubemapTexture: (state, payload) => {
+            let loc = payload['location']
+            let texture = payload['texture']
+            texture.encoding = sRGBEncoding
+            state.locations[loc]['texture'] = texture
+        },
     },
 })

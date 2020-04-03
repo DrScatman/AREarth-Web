@@ -8,8 +8,52 @@
                 Extended Reality Gallery
             </v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-btn color="yellow" class="black--text mx-4">logout</v-btn>
-            <v-btn color="red">help</v-btn>
+            <v-btn color="yellow" @click="logout" class="black--text mx-4">logout</v-btn>
+            <v-btn color="red" @click="helpDialog = !helpDialog">help</v-btn>
+            <v-dialog v-model="helpDialog" max-width="1200">
+                <v-card class="pa-4">
+                    <v-card-title>Help Menu</v-card-title>
+                    <v-card-text>
+                        What do you need help with?
+                    </v-card-text>
+                    <v-expansion-panels accordion focusable inset>
+                        <v-expansion-panel>
+                            <v-expansion-panel-header>I am lost or confused</v-expansion-panel-header>
+                            <v-expansion-panel-content>
+                                <p>Follow this tutorial!</p>
+                                <p>Could be a youtube video or a gif</p>
+                                <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/ZvQEHLA1o8M" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </v-expansion-panel-content>
+                        </v-expansion-panel>
+                        <v-expansion-panel>
+                            <v-expansion-panel-header>Uploading a model</v-expansion-panel-header>
+                            <v-expansion-panel-content>
+                                <p>Follow this tutorial!</p>
+                                <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/2kWupMxAmDA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </v-expansion-panel-content>
+                        </v-expansion-panel>
+                        <v-expansion-panel>
+                            <v-expansion-panel-header>Issue 3</v-expansion-panel-header>
+                            <v-expansion-panel-content>
+                                <p>Follow this tutorial!</p>
+                                <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/L1S-RkuQxxo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </v-expansion-panel-content>
+                        </v-expansion-panel>
+                        <v-expansion-panel>
+                            <v-expansion-panel-header>Issue 4</v-expansion-panel-header>
+                            <v-expansion-panel-content>
+                                <p>Follow this tutorial!</p>
+                            </v-expansion-panel-content>
+                        </v-expansion-panel>
+                    </v-expansion-panels>
+                    <v-divider class="my-4"></v-divider>
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn large color="green" @click.stop="helpDialog = false">Done</v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
+
         </v-app-bar>
         <v-content>
             <v-container class="fill-height">
@@ -20,21 +64,125 @@
                             <v-divider :key="index"></v-divider>
                         </template>
                     </v-stepper-header>
-                    <v-stepper-items >
+                    <v-stepper-items class="">
                         <v-stepper-content step="1">
                             <Location />
                         </v-stepper-content>
 
-                        <v-stepper-content step="2">
-                            Viewer Component here
+                        <v-stepper-content class="pa-0 ma-0" step="2">
+                            <v-container class="d-flex">
+                                <v-container id="viewer">
+                                    <canvas id="webgl-canvas" class=""></canvas>
+                                </v-container>
+                                <v-container class="sidebar">
+                                    <v-card>
+                                        <v-card-title>Upload</v-card-title>
+                                        <v-divider></v-divider>
+                                        <v-card-actions>
+                                            <v-btn color="blue-grey" class="ma-2 white--text" @click="uploadDialog = true">
+                                                upload model
+                                            </v-btn>
+                                        </v-card-actions>
+                                        <v-divider></v-divider>
+                                        <v-card-text v-if="!fileUploaded">Please upload a model</v-card-text>
+                                        <v-container v-else fluid>
+                                            <v-card-subtitle>Model Information:</v-card-subtitle>
+                                            <v-card-text class="py-0">
+                                                File type: {{fileExt}}
+                                            </v-card-text>
+                                            <v-card-text class="py-0">
+                                                File upladed: {{primaryFileName}}
+                                            </v-card-text>
+                                            <v-card-text class="py-0">
+                                                Triangles: {{renderer.info.render.triangles}}
+                                            </v-card-text>
+                                        </v-container>
+                                        <v-dialog v-model="uploadDialog" max-width="1200">
+                                            <v-card>
+                                                <v-overlay z-index="9999" absolute v-model="loadingModel">
+                                                    <p class="pa-4 text-center black lime--text lighten-3 display-2  rounded-border">Loading assets please wait
+                                                    <v-progress-circular indeterminate color="lime accent-3" width="15" size="100">
+                                                    </v-progress-circular>
+                                                    </p>
+                                                </v-overlay>
+
+                                                <v-card-title>Upload</v-card-title>
+                                                <v-divider class="my-4"></v-divider>
+                                                <v-card-subtitle>Supported model formats: glTF, glb, obj</v-card-subtitle>
+                                                <v-card-subtitle class="red--text" v-if="missingFiles.length > 0" v-model="missingFiles">Missing Files: {{missingFiles.toString().replace(/,/g, ", ")}}</v-card-subtitle>
+                                                <v-card-subtitle class="light-green--text" v-if="primaryFileName && missingFiles.length === 0">Success!</v-card-subtitle>
+
+                                                <vue-dropzone ref="dropzone" id="dropzone" :options="dropzoneOptions" @vdropzone-file-added="vFileAdded" @vdropzone-removed-file="vFileRemoved" useCustomSlot>
+                                                    <div class="dropzone-custom-content">
+                                                        <h3 class="dropzone-custom-title">Drag and drop to upload content!</h3>
+                                                        <div class="subtitle">...or click to select a file from your computer</div>
+                                                    </div>
+                                                </vue-dropzone>
+
+                                                <v-card-actions>
+                                                    <v-btn color="error" @click="removeAllFiles">Remove all files</v-btn>
+                                                    <v-spacer></v-spacer>
+                                                    <v-btn color="success" @click="uploadDialog = false">Done</v-btn>
+                                                </v-card-actions>
+                                            </v-card>
+                                        </v-dialog>
+
+                                    </v-card>
+                                    <v-card class="mt-4">
+                                        <v-card-title>Controls:</v-card-title>
+                                        <v-card-text>1. Click and hold viewport to rotate camera</v-card-text>
+                                        <v-card-text>2. Scroll wheel to zoom in and out</v-card-text>
+                                    </v-card>
+                                </v-container>
+                            </v-container>
                         </v-stepper-content>
 
-                        <v-stepper-content step="3">
-                            step 3
+                        <v-stepper-content step="3" class="pa-0 ma-0">
+                            <v-container class="d-flex">
+                                <v-container id="viewer-modify">
+                                    <canvas id="webgl-canvas-modify" class=""></canvas>
+                                </v-container>
+                                <v-container class="sidebar">
+                                    <v-card>
+                                        <v-card-title>Modify</v-card-title>
+                                        <v-divider class="my-0"></v-divider>
+                                        <v-container class="px-4 pt-0" fluid>
+                                            <v-switch class="py-0" label="Show Floor" v-model="showFloor" @click.stop="toggleFloor"></v-switch>
+                                            <v-switch  class="py-0" label="Show Model Axes" v-model="showAxes" @click.stop="toggleAxes"></v-switch>
+                                            <v-switch  class="py-0" label="Show World Origin" v-model="showWorldAxes" @click.stop="toggleWorldAxes"></v-switch>
+                                            <v-slider label="Model Scale" class="py-0" v-model="scale" min="1" max="1000"></v-slider>
+                                            <v-card-text class="pt-0">Estimated height: {{modelHeight}} units</v-card-text>
+                                            <v-slider label="Position X" class="py-0" v-model="positionX" min="-100" max="100" thumb-label></v-slider>
+                                            <v-slider label="Position Y" class="py-0" v-model="positionY" min="-100" max="100" thumb-label></v-slider>
+                                            <v-slider label="Position Z" class="py-0" v-model="positionZ" min="-100" max="100" thumb-label></v-slider>
+                                            <v-slider label="Rotate X" class="py-0" v-model="rotationX" min="1" max="360" thumb-label></v-slider>
+                                            <v-slider label="Rotate Y" class="py-0" v-model="rotationY" min="1" max="360" thumb-label></v-slider>
+                                            <v-slider label="Rotate Z" class="py-0" v-model="rotationZ" min="1" max="360" thumb-label></v-slider>
+                                        </v-container>
+                                    </v-card>
+                                </v-container>
+                            </v-container>
                         </v-stepper-content>
 
                         <v-stepper-content step="4">
-                            step4
+                            <v-card class="pa-4">
+                                <v-card-title>Almost there!</v-card-title>
+                                <v-divider></v-divider>
+                                <v-container class="pa-4" fluid>
+                                    <v-form>
+                                        <v-card-text>Give a meaningful name to the model:</v-card-text>
+                                        <v-text-field label="Model Name" outlined v-model="userModelName"></v-text-field>
+                                        <v-card-text>Give a description for users to read:</v-card-text>
+                                        <v-textarea label="Model Description" outlined v-model="userModelDescription"></v-textarea>
+                                        <v-card-text>When you are happy with your model click submit</v-card-text>
+                                        <v-spacer></v-spacer>
+                                        <v-btn color="green" @click="saveToDatabase">submit</v-btn>
+                                    </v-form>
+                                </v-container>
+                                <v-overlay v-model="databaseOverlay" opacity="0.8">
+                                    Saving to database please wait... {{uploadProgress}}%
+                                </v-overlay>
+                            </v-card>
                         </v-stepper-content>
                     </v-stepper-items>
                 </v-stepper>
@@ -43,26 +191,138 @@
         <v-footer app height="75">
             <v-btn color="blue" @click="prevStep" :disabled="step < 2">Back</v-btn>
             <v-spacer></v-spacer>
-            <v-btn color="blue" @click="nextStep" :disabled="step === steps.length">Continue</v-btn>
+            <v-btn color="blue" @click="nextStep" :disabled="canNextStep">Continue</v-btn>
         </v-footer>
     </v-app>
 </template>
 
 <script>
 import Location from './Location'
-import { AppDB, Storage } from './db-init.js'
+//import Viewer from './Viewer'
+import { AppDB, Storage, AppAuth } from './db-init.js'
+
+import {
+    WebGLRenderer,
+    PerspectiveCamera,
+    BoxGeometry,
+    MeshPhongMaterial,
+    MeshBasicMaterial,
+    MeshStandardMaterial,
+    Mesh,
+    LoadingManager,
+    CubeTextureLoader,
+    HemisphereLight,
+    sRGBEncoding,
+    Box3,
+    Sphere,
+    Vector3,
+    PlaneGeometry,
+    AxesHelper,
+    DoubleSide,
+} from 'three'
+
+
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter';
+
+import vue2Dropzone from 'vue2-dropzone'
 
 export default {
     name: 'Container',
     components: {
         Location,
+        vueDropzone: vue2Dropzone,
     },
     data: () => ({
         step: 1,
         steps: ['Choose Location', 'Upload Model', 'Modify Model', 'Finish'],
+
+        camera: null,
+        renderer: null,
+        controls: null,
+        modifyRenderer: null,
+
+        helpDialog: false,
+        uploadDialog: false,
+        loadingModel: false,
+        databaseOverlay: false,
+
+        loaders: {
+            manager: null,
+            gltf: null,
+            obj: null,
+            mtl: null,
+            cubemap: null,
+        },
+
+        fileMap: new Map(),
+        primaryModel: null,
+        primaryFileName: null,
+        mtlFileName: "",
+        fileExt: null,
+        missingFiles: [],
+        fileUploaded: false,
+
+        showFloor: false,
+        showAxes: false,
+        showWorldAxes: false,
+        floor: null,
+        axes: null,
+        worldAxes: null,
+        scale: 100,
+        modelHeight: 0,
+        positionX: 0,
+        positionY: 0,
+        positionZ: 0,
+        rotationX: 0,
+        rotationY: 0,
+        rotationZ: 0,
+
+        userModelName: "",
+        userModelDescription: "",
+        uploadProgress: 0,
+
+        dropzoneOptions: {
+            url: "no_post",
+            autoProcessQueue: false,
+            acceptedFiles: ".obj,.mtl,.gltf,.bin,.glb,image/png,image/jpeg,image/jpg",
+        }
     }),
     methods: {
         nextStep() {
+            if(this.step === 1) {
+                //check to see if a urls exists
+                let loc = this.locations[this.selectedLocation]
+
+                if(loc['texture']) {
+                    console.log("texture is already loaded use that")
+                    this.scene.background = this.locations[this.selectedLocation]['texture']
+                }
+                else {
+                    if(loc['urls']) {
+                        console.log("no texture but urls to load")
+                        let texture = this.loaders.cubemap.load([
+                            loc['urls'][0],
+                            loc['urls'][1],
+                            loc['urls'][2],
+                            loc['urls'][3],
+                            loc['urls'][4],
+                            loc['urls'][5],
+                        ], () => {
+                            let payload = {location: this.selectedLocation, texture: texture}
+                            this.$store.commit('setLocationCubemapTexture', payload)
+                            this.scene.background = texture
+                        })
+                    }
+                    else {
+                        this.scene.background = null
+                        console.log("no urls to use")
+                    }
+                }
+            }
             if(this.step < this.steps.length) {
                 this.step += 1
             }
@@ -71,11 +331,420 @@ export default {
             if(this.step > 1) {
                 this.step -= 1
             }
-        }
+        },
+
+        init() {
+            this.addListeners()
+            this.instantiateLoaders()
+            this.configureURLOverride()
+            this.setupScene()
+            this.setupModifyScene()
+            this.addDefaultCube()
+        },
+        animate() {
+            requestAnimationFrame(this.animate)
+            this.controls.update()
+            this.modifyControls.update()
+            this.renderer.render(this.scene, this.camera)
+            this.modifyRenderer.render(this.scene, this.camera)
+        },
+        setupModifyScene() {
+            let canvas = document.querySelector("#webgl-canvas-modify")
+            this.modifyRenderer = new WebGLRenderer({canvas: canvas, antialias: true})
+            this.modifyRenderer.setClearColor(0x777799, 1);
+            this.modifyRenderer.outputEncoding = sRGBEncoding;
+
+            let viewer = document.querySelector("#viewer")
+            let w = viewer.clientWidth
+            let h = viewer.clientHeight
+
+            let geo = new PlaneGeometry(1000,1000);
+            geo.rotateX(-Math.PI/2)
+            let mat = new MeshBasicMaterial({color: 0x777777 , side: DoubleSide})
+            this.floor= new Mesh(geo, mat)
+            this.axes = new AxesHelper(10)
+            this.worldAxes = new AxesHelper(10)
+            this.axes.visible = false
+            this.worldAxes.visible = false
+            this.scene.add(this.worldAxes)
+            this.floor.visible = false
+            this.scene.add(this.floor)
+
+            this.modifyControls = new OrbitControls(this.camera, this.modifyRenderer.domElement)
+            this.modifyControls.update()
+            this.modifyRenderer.setSize(w, h, false)
+        },
+        onWindowResize() {
+            if(this.step === 2) {
+                let viewer = document.querySelector("#viewer")
+                let w = viewer.clientWidth
+                let h = viewer.clientHeight
+                this.camera.aspect = w/h
+                this.camera.updateProjectionMatrix()
+                this.renderer.setSize(w, h, false)
+            }
+            if(this.step == 3) {
+                let modifyViewer = document.querySelector("#viewer-modify")
+                let w = modifyViewer.clientWidth
+                let h = modifyViewer.clientHeight
+                this.camera.aspect = w/h
+                this.camera.updateProjectionMatrix()
+                this.modifyRenderer.setSize(w, h, false)
+            }
+        },
+        addListeners() {
+            window.addEventListener('resize', this.onWindowResize, false)
+        },
+        addDefaultCube() {
+            let geometry = new BoxGeometry(2, 2, 2)
+            let material = new MeshPhongMaterial()
+            this.primaryModel = new Mesh(geometry, material)
+            this.camera.position.set(2, 2, 2)
+            this.scene.add(this.primaryModel)
+        },
+        instantiateLoaders() {
+            this.loaders.manager = new LoadingManager()
+            this.loaders.gltf = new GLTFLoader(this.loaders.manager)
+            this.loaders.obj = new OBJLoader(this.loaders.manager);
+            this.loaders.mtl = new MTLLoader(this.loaders.manager);
+            this.loaders.cubemap = new CubeTextureLoader();
+        },
+        setupScene() {
+            let canvas = document.querySelector("#webgl-canvas")
+            let viewer = document.querySelector("#viewer")
+            let w = viewer.clientWidth
+            let h = viewer.clientHeight
+            this.camera = new PerspectiveCamera(70, w/h, 0.01, 10000)
+            this.camera.position.set(2, 2, 2)
+            let hemis = new HemisphereLight(0xffffbb, 0x080820, 1);
+            this.scene.add(hemis);
+
+            this.renderer = new WebGLRenderer({canvas: canvas, antialias: true})
+            this.renderer.setClearColor(0x777799, 1);
+            this.renderer.outputEncoding = sRGBEncoding;
+            this.renderer.setSize(w, h, false)
+
+            this.controls = new OrbitControls(this.camera, this.renderer.domElement)
+            this.controls.enablePan = false
+            this.controls.update()
+        },
+        vFileAdded() {
+            this.$nextTick(()=> {
+                //handle it as a bundle if possible
+                let files = this.$refs.dropzone.getQueuedFiles()
+                files.forEach((f) => {
+                    if(f.name.endsWith(".obj") ||
+                        f.name.endsWith(".gltf") ||
+                        f.name.endsWith(".glb")) {
+
+                        this.primaryFileName = f.name
+                        this.fileExt = this.primaryFileName.split(".").pop()
+                    }
+                    if(f.name.endsWith(".mtl")) {
+                        this.mtlFileName = f.name
+                    }
+                    let url = URL.createObjectURL(f)
+                    this.fileMap.set(f.name, url)
+                })
+                if(this.primaryFileName) {
+                    //clear missing files
+                    this.missingFiles = []
+                    if(this.fileExt === "gltf" || this.fileExt === "glb") {
+                        this.loadGLTF(this.primaryFileName)
+                    }
+                    else {
+                        this.loadOBJ(this.primaryFileName, this.mtlFileName)
+                    }
+                }
+            })
+        },
+        loadGLTF(url) {
+            this.loaders.gltf.load(url, (gltf) => {
+                this.scene.remove(this.primaryModel)
+                this.primaryModel = gltf.scene
+                this.scene.add(this.primaryModel)
+
+                this.setCameraToModel()
+                //this.primaryModel.geometry.center()
+                this.centerModel()
+
+                this.primaryModel.traverse((child) => {
+                    if(child.isMesh) {
+                        //sometimes a mesh has a basicmaterial which will cause it to
+                        //be completely reflective which is incorrect
+                        if(child.material instanceof MeshStandardMaterial) {
+                            child.material.envMap = this.locations[this.selectedLocation]['texture']
+                        }
+                    }
+                })
+                this.primaryModel.add(this.axes)
+                this.clearFileMap()
+                this.uploadDialog = false
+                this.loadingModel = false
+                this.fileUploaded = true
+                this.$refs.dropzone.disable()
+            }, (xhr) => {
+                let percentLoaded = (xhr.loaded / xhr.total*100).toFixed(2)
+                console.log(percentLoaded  + '% loaded');
+                this.loadingModel = true
+            }, (error) => {
+                console.log("Failed to load gltf model: " + error);
+                this.loadingModel = false
+            });
+        },
+        loadOBJ(obj, mtl) {
+            this.loaders.mtl.load(mtl, (mat) => {
+                this.loaders.obj.setMaterials(mat);
+
+                this.loaders.obj.load(obj, (model) => {
+                    this.scene.remove(this.primaryModel)
+                    this.primaryModel = model
+                    this.scene.add(this.primaryModel)
+
+                    this.setCameraToModel()
+                    //this.centerModel()
+
+
+                    this.primaryModel.traverse((child) => {
+                        if(child.isMesh) {
+                            //sometimes a mesh has a basicmaterial which will cause it to
+                            //be completely reflective which is incorrect
+                            if(child.material instanceof MeshStandardMaterial) {
+                                child.material.envMap = this.locations[this.selectedLocation]['texture']
+                            }
+                        }
+                    })
+
+                    //clears before finish using
+                    //this.clearFileMap()
+                    this.uploadDialog = false
+                    this.loadingModel = false
+                    this.fileUploaded = true
+                    this.primaryModel.add(this.axes)
+                    this.$refs.dropzone.disable()
+                }, (xhr) => {
+                    let percentLoaded = (xhr.loaded / xhr.total*100).toFixed(2)
+                    console.log(percentLoaded  + '% loaded');
+                    this.loadingModel = true
+                }, (error) => {
+                    console.log("Failed to load obj model: " + error);
+                    this.loadingModel = false
+                });
+            }, (xhr) => {
+                console.log((xhr.loaded / xhr.total*100).toFixed(2)  + '% loaded');
+            }, (error) => {
+                console.log("Failed to load mtl: " + error);
+            });
+        },
+        configureURLOverride() {
+            this.loaders.manager.setURLModifier((url) => {
+                let filename = url.split("/").pop()
+                let override = this.fileMap.get(filename)
+                if(override) {
+                    return override
+                }
+                //a fix to a weird bug where the glb file will continue looking
+                //for more files even though it has already loaded in
+                //I suspect it has to do with the nexttick method
+                //or the url gets split based on file size
+                if(this.fileExt != "glb") {
+                    this.missingFiles.push(filename)
+                }
+                return url
+            })
+        },
+        setCameraToModel() {
+            const box = new Box3().setFromObject(this.primaryModel);
+            const radius = box.getBoundingSphere(new Sphere()).radius;
+            this.camera.position.set(radius, radius/4, radius)
+        },
+        centerModel() {
+            const box = new Box3().setFromObject(this.primaryModel);
+            const center = box.getCenter(new Vector3());
+            this.primaryModel.position.x += (this.primaryModel.position.x - center.x);
+            this.primaryModel.position.y += (this.primaryModel.position.y - center.y);
+            this.primaryModel.position.z += (this.primaryModel.position.z - center.z);
+            this.modelHeight = box.getSize(new Vector3).y.toFixed(2)
+        },
+        vFileRemoved() {
+            console.log("removed file")
+        },
+        removeAllFiles() {
+            this.$refs.dropzone.removeAllFiles()
+            this.resetUploadState()
+            this.$refs.dropzone.enable()
+        },
+        resetUploadState() {
+            this.scene.remove(this.primaryModel)
+
+            //resets default values
+            this.primaryFileName = null
+            this.fileUploaded = false
+            this.primaryModel = null
+            this.fileExt = null
+            this.mtlFileName = ""
+            this.missingFiles = []
+
+            this.addDefaultCube()
+            this.clearFileMap()
+        },
+        clearFileMap() {
+            this.fileMap.forEach((url) => {
+                console.log("revoking url: ", url)
+                URL.revokeObjectURL(url)
+            })
+            this.fileMap.clear()
+        },
+        toggleFloor() {
+            if(!this.showFloor) {
+                this.showFloor = true
+                this.floor.visible = true
+            }
+            else {
+                this.showFloor = false
+                this.floor.visible = false
+            }
+        },
+        toggleAxes() {
+            if(!this.showAxes) {
+                this.showAxes = true
+                this.axes.visible = true
+            }
+            else {
+                this.showAxes = false
+                this.axes.visible = false
+            }
+        },
+        toggleWorldAxes() {
+            if(!this.showWorldAxes) {
+                this.showWorldAxes = true
+                this.worldAxes.visible = true
+            }
+            else {
+                this.showWorldAxes = false
+                this.worldAxes.visible = false
+            }
+        },
+        scaleUpdate() {
+            let s = this.scale/100.0
+            this.primaryModel.scale.set(s, s, s)
+            const box = new Box3().setFromObject(this.primaryModel);
+            let dimensions = box.getSize(new Vector3)
+            this.modelHeight = dimensions.y.toFixed(2)
+            //console.log(this.primaryModel)
+            //this.primaryModel.position.set(0,0,0)
+            //this.primaryModel.geometry.center()
+            //this.setCameraToModel()
+        },
+        updatePosition() {
+            this.primaryModel.position.set(this.positionX, this.positionY, this.positionZ)
+        },
+        updateRotationX() {
+            this.primaryModel.rotation.x = (this.rotationX*Math.PI)/180
+        },
+        updateRotationY() {
+            this.primaryModel.rotation.y = (this.rotationY*Math.PI)/180
+        },
+        updateRotationZ() {
+            this.primaryModel.rotation.z = (this.rotationZ*Math.PI)/180
+        },
+        logout() {
+            AppAuth.signOut().then(() => {
+                console.log("Signed out");
+            });
+        },
+        saveToDatabase() {
+            this.databaseOverlay = true
+            const uid = AppAuth.currentUser.uid
+            AppDB.ref(`users/${uid}/locations/${this.selectedLocation}`).set({
+                fileName: this.userModelName,
+                description: this.userModelDescription
+            }).then(() => {
+                this.exportToStorage(uid)
+            }).catch((err) => {
+                this.databaseOverlay = false
+                console.log("Error writing to realtime DB: " + err.message)
+            })
+        },
+        exportToStorage(useruid) {
+            if(this.primaryFileName) {
+                const exporter = new GLTFExporter()
+                const options = {
+                    trs: true,
+                    binary: true,
+               }
+                exporter.parse(this.primaryModel, (gltf) => {
+                    let buffer = new Uint8Array(gltf)
+                    let directory = useruid
+                    let uploadTask = Storage.ref().child(`${directory}/${this.userModelName}.glb`).put(buffer)
+                    uploadTask.on('state_changed', (snapshot) => {
+                        this.uploadProgress = Math.floor(((snapshot.bytesTransferred / snapshot.totalBytes) * 100))
+                    }, (error) => {
+                        console.log("Upload Failed!" + error.message)
+                    }, () => {
+                        console.log("Upload success!")
+                        this.step = 1
+                        this.databaseOverlay = false
+                    })
+                }, options)
+            }
+            else {
+                console.log("You can't upload the default cube!")
+            }
+        },
     },
-    mounted() {
-        //logged in out listeners
-        /*
+    computed: {
+        locations() {
+            return this.$store.getters.locations
+        },
+        selectedLocation() {
+            return this.$store.getters.selectedLocation
+        },
+        canNextStep() {
+            //disabled if the location hasn't been selected yet
+            if(this.step === 1 && !this.selectedLocation) {
+                return true
+            }
+            if(this.step === 2 && !this.fileUploaded) {
+                return true
+            }
+            if(this.step === this.steps.length) {
+                return true
+            }
+            return false
+        },
+        scene() {
+            return this.$store.getters.scene
+        },
+    },
+    updated() {
+        this.onWindowResize()
+    },
+    watch: {
+        scale() {
+            this.scaleUpdate()
+        },
+        positionX () {
+            this.updatePosition()
+        },
+        positionY () {
+            this.updatePosition()
+        },
+        positionZ () {
+            this.updatePosition()
+        },
+        rotationX () {
+            this.updateRotationX()
+        },
+        rotationY () {
+            this.updateRotationY()
+        },
+        rotationZ () {
+            this.updateRotationZ()
+        }
+
+    },
+    created() {
         AppAuth.onAuthStateChanged((u) => {
             if (u == null) {
                 console.log("viewer - not logged in")
@@ -88,14 +757,11 @@ export default {
                 this.isLoggedIn = true
             }
         });
-        */
 
         AppDB.ref('/locations/').once('value').then((snapshot) => {
             let locations = snapshot.val()
             this.$store.commit('setLocations', locations)
         }).then(() => {
-            console.log("ignore", Storage)
-            /*
             const locations = this.$store.getters.locations
             const keys = Object.keys(locations)
             keys.forEach((key) => {
@@ -107,22 +773,91 @@ export default {
                 let p6 = Storage.ref().child(`cubemaps/${key}/nz.png`).getDownloadURL()
                 Promise.all([p1, p2, p3, p4, p5, p6]).then((urls) => {
                     if(urls.length == 6) {
-                        let payload = { location: key, urls: urls }
-                        this.$store.commit('setLocationCubemap', payload)
+                        //let payload = { location: key, urls: urls }
+                        this.$set(this.locations[key], 'urls', urls)
+                        //this.$store.commit('setLocationUrls', payload)
                     }
+                    this.$forceUpdate()
                 }).catch((err) => {
                     console.log("Error: ", err)
                 })
             })
-            */
         })
+    },
+    mounted() {
+        this.init()
+        this.animate()
+
     },
 }
 </script>
 
 <style>
+
+::-webkit-scrollbar {
+    display: none;
+}
+
 .fill-width {
     width: 100%;
+}
+
+#viewer {
+    max-height: 800px;
+}
+
+#webgl-canvas {
+    width: 100%;
+    height: 600px;
+}
+
+#webgl-canvas-modify {
+    width: 100%;
+    height: 600px;
+}
+
+canvas {
+    width: 100%;
+    height: 600px;
+    outline: none;
+}
+
+.sidebar {
+    max-width: 400px;
+    min-width: 300px;
+}
+
+.dz-progress {
+    display: none;
+}
+
+#dropzone {
+    min-height: 50vh;
+}
+
+.dz-drag-hover {
+    background-color: lightgreen !important;
+}
+
+.rounded-border {
+    border-radius: 10px;
+}
+
+.dropzone-custom-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.dropzone-custom-title {
+  margin-top: 0;
+  color: #00b782;
+}
+
+.small-textfield {
+    width: 40px;
 }
 
 </style>
