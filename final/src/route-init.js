@@ -12,7 +12,7 @@ const routeTable = [
     { path: "/Login", name: "Login", component: Login }
 ];
 
-const AppRouter = new VueRouter({ routes: routeTable, mode: "history" });
+const AppRouter = new VueRouter({ routes: routeTable, mode: "history", base: process.env.BASE_URL });
 
 let getCurrentUser = () => {
     return new Promise((resolve) => {

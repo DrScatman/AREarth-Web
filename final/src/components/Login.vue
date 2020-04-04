@@ -49,7 +49,7 @@
                                                     <v-form ref="form">
                                                         <v-text-field label="First name" v-model="firstName" required :rules="requiredRules"></v-text-field>
                                                         <v-text-field label="Last name" v-model="lastName" required :rules="requiredRules"></v-text-field>
-                                                        <v-text-field label="GVSU Email" v-model="newAccountEmail" placeholder="user@gvsu.edu" required ></v-text-field>
+                                                        <v-text-field label="GVSU Email" v-model="newAccountEmail" placeholder="user@gvsu.edu" :rules="requiredRules"></v-text-field>
                                                         <v-text-field label="Password" v-model="newAccountPassword" type="password" :rules="requiredRules"></v-text-field>
                                                         <v-text-field label="Confirm Password" v-model="confirmPassword" type="password" :rules="[confirmPass]"></v-text-field>
                                                     </v-form>

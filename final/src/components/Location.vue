@@ -1,9 +1,21 @@
 <template>
-    <v-container fluid>
-        <v-toolbar-title class="text-uppercase font-weight-bold">Select a Location</v-toolbar-title>
+    <v-container>
+        <v-toolbar-title class="text-uppercase font-weight-bold">Select a Location to place a model</v-toolbar-title>
         <template v-for="(location,index) in locations" class="">
             <v-card @click.stop="selectLocation(index)" :class="{selected: index === selectedLocation}" class="pa-2 ma-2" :key="index">
-                <v-card-title>{{location.name}}</v-card-title>
+                <v-container fluid>
+                    <v-row justify="end">
+                        <v-col cols="4">
+                            <v-card-title>{{location.name}}</v-card-title>
+                        </v-col>
+                        <v-spacer>
+                        </v-spacer>
+                        <v-col cols="4">
+                            <v-card-title v-if="location.modelName" class="green--text darken-4">{{location.modelName}}</v-card-title>
+                            <v-card-title v-else class="red--text">No Model</v-card-title>
+                        </v-col>
+                    </v-row>
+                </v-container>
                 <v-divider></v-divider>
                 <v-card-actions>
                     <v-card-text>{{location.description}}</v-card-text>

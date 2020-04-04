@@ -79,8 +79,11 @@
                                         <v-card-title>Upload</v-card-title>
                                         <v-divider></v-divider>
                                         <v-card-actions>
-                                            <v-btn color="blue-grey" class="ma-2 white--text" @click="uploadDialog = true">
+                                            <v-btn color="blue-grey" v-if="!fileUploaded" :class="{ glow: !fileUploaded }" x-large class="ma-2 white--text" @click="uploadDialog = true">
                                                 upload model
+                                            </v-btn>
+                                            <v-btn color="yellow" v-else x-large class="ma-2 black--text" @click="uploadDialog = true">
+                                                change model
                                             </v-btn>
                                         </v-card-actions>
                                         <v-divider></v-divider>
@@ -118,7 +121,6 @@
                                                         <div class="subtitle">...or click to select a file from your computer</div>
                                                     </div>
                                                 </vue-dropzone>
-
                                                 <v-card-actions>
                                                     <v-btn color="error" @click="removeAllFiles">Remove all files</v-btn>
                                                     <v-spacer></v-spacer>
@@ -149,15 +151,15 @@
                                         <v-container class="px-4 pt-0" fluid>
                                             <v-switch class="py-0" label="Show Floor" v-model="showFloor" @click.stop="toggleFloor"></v-switch>
                                             <v-switch  class="py-0" label="Show Model Axes" v-model="showAxes" @click.stop="toggleAxes"></v-switch>
-                                            <v-switch  class="py-0" label="Show World Origin" v-model="showWorldAxes" @click.stop="toggleWorldAxes"></v-switch>
+                                            <v-switch  class="py-0" label="Show Anchor Location" v-model="showAnchor" @click.stop="toggleAnchor"></v-switch>
                                             <v-slider label="Model Scale" class="py-0" v-model="scale" min="1" max="1000"></v-slider>
                                             <v-card-text class="pt-0">Estimated height: {{modelHeight}} units</v-card-text>
-                                            <v-slider label="Position X" class="py-0" v-model="positionX" min="-100" max="100" thumb-label></v-slider>
-                                            <v-slider label="Position Y" class="py-0" v-model="positionY" min="-100" max="100" thumb-label></v-slider>
-                                            <v-slider label="Position Z" class="py-0" v-model="positionZ" min="-100" max="100" thumb-label></v-slider>
-                                            <v-slider label="Rotate X" class="py-0" v-model="rotationX" min="1" max="360" thumb-label></v-slider>
-                                            <v-slider label="Rotate Y" class="py-0" v-model="rotationY" min="1" max="360" thumb-label></v-slider>
-                                            <v-slider label="Rotate Z" class="py-0" v-model="rotationZ" min="1" max="360" thumb-label></v-slider>
+                                            <v-slider label="Position X" class="py-0" v-model="positionX" min="-1000" max="1000" ></v-slider>
+                                            <v-slider label="Position Y" class="py-0" v-model="positionY" min="-1000" max="1000" ></v-slider>
+                                            <v-slider label="Position Z" class="py-0" v-model="positionZ" min="-1000" max="1000" ></v-slider>
+                                            <v-slider label="Rotate X" class="py-0" v-model="rotationX" min="0" max="360" ></v-slider>
+                                            <v-slider label="Rotate Y" class="py-0" v-model="rotationY" min="0" max="360" ></v-slider>
+                                            <v-slider label="Rotate Z" class="py-0" v-model="rotationZ" min="0" max="360" ></v-slider>
                                         </v-container>
                                     </v-card>
                                 </v-container>
@@ -189,9 +191,9 @@
             </v-container>
         </v-content>
         <v-footer app height="75">
-            <v-btn color="blue" @click="prevStep" :disabled="step < 2">Back</v-btn>
+            <v-btn color="blue" @click="prevStep" x-large :disabled="step < 2">back</v-btn>
             <v-spacer></v-spacer>
-            <v-btn color="blue" @click="nextStep" :disabled="canNextStep">Continue</v-btn>
+            <v-btn :class="{ glow: !canNextStep }" x-large @click="nextStep" :disabled="canNextStep">continue</v-btn>
         </v-footer>
     </v-app>
 </template>
@@ -219,6 +221,7 @@ import {
     PlaneGeometry,
     AxesHelper,
     DoubleSide,
+    SphereGeometry,
 } from 'three'
 
 
@@ -268,10 +271,12 @@ export default {
 
         showFloor: false,
         showAxes: false,
-        showWorldAxes: false,
+        //showWorldAxes: false,
+        showAnchor: false,
         floor: null,
         axes: null,
-        worldAxes: null,
+        //worldAxes: null,
+        anchor: null,
         scale: 100,
         modelHeight: 0,
         positionX: 0,
@@ -288,7 +293,7 @@ export default {
         dropzoneOptions: {
             url: "no_post",
             autoProcessQueue: false,
-            acceptedFiles: ".obj,.mtl,.gltf,.bin,.glb,image/png,image/jpeg,image/jpg",
+            acceptedFiles: ".obj,.mtl,.gltf,.bin,.glb,.tga,image/png,image/jpeg,image/jpg",
         }
     }),
     methods: {
@@ -363,10 +368,15 @@ export default {
             let mat = new MeshBasicMaterial({color: 0x777777 , side: DoubleSide})
             this.floor= new Mesh(geo, mat)
             this.axes = new AxesHelper(10)
-            this.worldAxes = new AxesHelper(10)
             this.axes.visible = false
-            this.worldAxes.visible = false
-            this.scene.add(this.worldAxes)
+            //this.worldAxes = new AxesHelper(10)
+            let sphereGeo = new SphereGeometry(1)
+            let sphereMat = new MeshBasicMaterial({color: 0xFF0000})
+            this.anchor = new Mesh(sphereGeo, sphereMat)
+            this.anchor.visible = false
+            //this.worldAxes.visible = false
+            //this.scene.add(this.worldAxes)
+            this.scene.add(this.anchor)
             this.floor.visible = false
             this.scene.add(this.floor)
 
@@ -482,7 +492,7 @@ export default {
                 this.uploadDialog = false
                 this.loadingModel = false
                 this.fileUploaded = true
-                this.$refs.dropzone.disable()
+                //this.$refs.dropzone.disable()
             }, (xhr) => {
                 let percentLoaded = (xhr.loaded / xhr.total*100).toFixed(2)
                 console.log(percentLoaded  + '% loaded');
@@ -521,7 +531,7 @@ export default {
                     this.loadingModel = false
                     this.fileUploaded = true
                     this.primaryModel.add(this.axes)
-                    this.$refs.dropzone.disable()
+                    //this.$refs.dropzone.disable()
                 }, (xhr) => {
                     let percentLoaded = (xhr.loaded / xhr.total*100).toFixed(2)
                     console.log(percentLoaded  + '% loaded');
@@ -572,7 +582,7 @@ export default {
         removeAllFiles() {
             this.$refs.dropzone.removeAllFiles()
             this.resetUploadState()
-            this.$refs.dropzone.enable()
+            //this.$refs.dropzone.enable()
         },
         resetUploadState() {
             this.scene.remove(this.primaryModel)
@@ -615,14 +625,16 @@ export default {
                 this.axes.visible = false
             }
         },
-        toggleWorldAxes() {
-            if(!this.showWorldAxes) {
-                this.showWorldAxes = true
-                this.worldAxes.visible = true
+        toggleAnchor() {
+            if(!this.showAnchor) {
+                this.showAnchor = true
+                //this.worldAxes.visible = true
+                this.anchor.visible = true
             }
             else {
-                this.showWorldAxes = false
-                this.worldAxes.visible = false
+                this.showAnchor = false
+                //this.worldAxes.visible = false
+                this.anchor.visible = false
             }
         },
         scaleUpdate() {
@@ -630,14 +642,10 @@ export default {
             this.primaryModel.scale.set(s, s, s)
             const box = new Box3().setFromObject(this.primaryModel);
             let dimensions = box.getSize(new Vector3)
-            this.modelHeight = dimensions.y.toFixed(2)
-            //console.log(this.primaryModel)
-            //this.primaryModel.position.set(0,0,0)
-            //this.primaryModel.geometry.center()
-            //this.setCameraToModel()
+            this.modelHeight = (dimensions.y/10.0).toFixed(2)
         },
         updatePosition() {
-            this.primaryModel.position.set(this.positionX, this.positionY, this.positionZ)
+            this.primaryModel.position.set(this.positionX/100.0, this.positionY/100.0, this.positionZ/100.0)
         },
         updateRotationX() {
             this.primaryModel.rotation.x = (this.rotationX*Math.PI)/180
@@ -657,7 +665,7 @@ export default {
             this.databaseOverlay = true
             const uid = AppAuth.currentUser.uid
             AppDB.ref(`users/${uid}/locations/${this.selectedLocation}`).set({
-                fileName: this.userModelName,
+                fileName: this.userModelName + ".glb",
                 description: this.userModelDescription
             }).then(() => {
                 this.exportToStorage(uid)
@@ -683,8 +691,10 @@ export default {
                         console.log("Upload Failed!" + error.message)
                     }, () => {
                         console.log("Upload success!")
-                        this.step = 1
-                        this.databaseOverlay = false
+                        //this.step = 1
+                        //this.databaseOverlay = false
+                        //works for now but now the best way to do this
+                        location.reload()
                     })
                 }, options)
             }
@@ -773,13 +783,25 @@ export default {
                 let p6 = Storage.ref().child(`cubemaps/${key}/nz.png`).getDownloadURL()
                 Promise.all([p1, p2, p3, p4, p5, p6]).then((urls) => {
                     if(urls.length == 6) {
-                        //let payload = { location: key, urls: urls }
                         this.$set(this.locations[key], 'urls', urls)
-                        //this.$store.commit('setLocationUrls', payload)
                     }
                     this.$forceUpdate()
                 }).catch((err) => {
                     console.log("Error: ", err)
+                })
+
+                const uid = AppAuth.currentUser.uid
+                console.log(`/users/${uid}/locations/${key}`)
+                AppDB.ref(`/users/${uid}/locations/${key}`).once('value').then((snapshot) => {
+                    let modelInfo = snapshot.val()
+                    //removes the .glb extension
+                    if(modelInfo) {
+                        console.log(modelInfo)
+                        let modelName = modelInfo.fileName
+                        modelName = modelName.substring(0, modelName.length-4)
+                        this.$set(this.locations[key], 'modelName', modelName)
+                        console.log(this.locations[key])
+                    }
                 })
             })
         })
@@ -858,6 +880,16 @@ canvas {
 
 .small-textfield {
     width: 40px;
+}
+
+@keyframes glowing {
+    0% { background-color: rgba(51, 204, 51, 1); }
+    50% { background-color: rgba(31, 122, 31, 1); }
+    100% { background-color: rgba(51, 204, 51, 1); }
+}
+
+.glow {
+    animation: glowing 1s infinite;
 }
 
 </style>
