@@ -94,7 +94,7 @@
                                                 File type: {{fileExt}}
                                             </v-card-text>
                                             <v-card-text class="py-0">
-                                                File upladed: {{primaryFileName}}
+                                                File Uploaded: {{primaryFileName}}
                                             </v-card-text>
                                             <v-card-text class="py-0">
                                                 Triangles: {{renderer.info.render.triangles}}
@@ -115,7 +115,7 @@
                                                 <v-card-subtitle class="red--text" v-if="missingFiles.length > 0" v-model="missingFiles">Missing Files: {{missingFiles.toString().replace(/,/g, ", ")}}</v-card-subtitle>
                                                 <v-card-subtitle class="light-green--text" v-if="primaryFileName && missingFiles.length === 0">Success!</v-card-subtitle>
 
-                                                <vue-dropzone ref="dropzone" id="dropzone" :options="dropzoneOptions" @vdropzone-file-added="vFileAdded" @vdropzone-removed-file="vFileRemoved" useCustomSlot>
+                                                <vue-dropzone ref="dropzone" id="dropzone" :options="dropzoneOptions" @vdropzone-files-added="vFileAdded" @vdropzone-removed-file="vFileRemoved" useCustomSlot>
                                                     <div class="dropzone-custom-content">
                                                         <h3 class="dropzone-custom-title">Drag and drop to upload content!</h3>
                                                         <div class="subtitle">...or click to select a file from your computer</div>
@@ -228,6 +228,7 @@ import {
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter';
 
@@ -258,6 +259,7 @@ export default {
             gltf: null,
             obj: null,
             mtl: null,
+            fbx: null,
             cubemap: null,
         },
 
@@ -293,7 +295,7 @@ export default {
         dropzoneOptions: {
             url: "no_post",
             autoProcessQueue: false,
-            acceptedFiles: ".obj,.mtl,.gltf,.bin,.glb,.tga,image/png,image/jpeg,image/jpg",
+            acceptedFiles: ".obj,.mtl,.gltf,.bin,.glb,.tga,.fbx,.ma,image/png,image/jpeg,image/jpg",
         }
     }),
     methods: {
@@ -415,6 +417,7 @@ export default {
         instantiateLoaders() {
             this.loaders.manager = new LoadingManager()
             this.loaders.gltf = new GLTFLoader(this.loaders.manager)
+            this.loaders.fbx = new FBXLoader(this.loaders.manager)
             this.loaders.obj = new OBJLoader(this.loaders.manager);
             this.loaders.mtl = new MTLLoader(this.loaders.manager);
             this.loaders.cubemap = new CubeTextureLoader();
@@ -439,11 +442,14 @@ export default {
             this.controls.update()
         },
         vFileAdded() {
-            this.$nextTick(()=> {
+            setTimeout(() => {
+                let f = this.$refs.dropzone.getQueuedFiles()
+                console.log(f)
                 //handle it as a bundle if possible
                 let files = this.$refs.dropzone.getQueuedFiles()
                 files.forEach((f) => {
                     if(f.name.endsWith(".obj") ||
+                        f.name.endsWith(".fbx") ||
                         f.name.endsWith(".gltf") ||
                         f.name.endsWith(".glb")) {
 
@@ -462,11 +468,14 @@ export default {
                     if(this.fileExt === "gltf" || this.fileExt === "glb") {
                         this.loadGLTF(this.primaryFileName)
                     }
+                    else if(this.fileExt === 'fbx') {
+                        this.loadFBX(this.primaryFileName)
+                    }
                     else {
                         this.loadOBJ(this.primaryFileName, this.mtlFileName)
                     }
                 }
-            })
+            }, 1000)
         },
         loadGLTF(url) {
             this.loaders.gltf.load(url, (gltf) => {
@@ -488,7 +497,7 @@ export default {
                     }
                 })
                 this.primaryModel.add(this.axes)
-                this.clearFileMap()
+                //this.clearFileMap()
                 this.uploadDialog = false
                 this.loadingModel = false
                 this.fileUploaded = true
@@ -546,6 +555,40 @@ export default {
                 console.log("Failed to load mtl: " + error);
             });
         },
+        loadFBX(url) {
+            this.loaders.fbx.load(url, (model) => {
+                this.scene.remove(this.primaryModel)
+                this.primaryModel = model
+                this.scene.add(this.primaryModel)
+
+                this.setCameraToModel()
+                //this.primaryModel.geometry.center()
+                this.centerModel()
+                this.primaryModel.traverse((child) => {
+                    if(child.isMesh) {
+                        //sometimes a mesh has a basicmaterial which will cause it to
+                        //be completely reflective which is incorrect
+                        if(child.material instanceof MeshStandardMaterial) {
+                            child.material.envMap = this.locations[this.selectedLocation]['texture']
+                        }
+                    }
+                })
+                this.primaryModel.add(this.axes)
+                //this.clearFileMap()
+                this.uploadDialog = false
+                this.loadingModel = false
+                this.fileUploaded = true
+                //this.$refs.dropzone.disable()
+            }, (xhr) => {
+                let percentLoaded = (xhr.loaded / xhr.total*100).toFixed(2)
+                console.log(percentLoaded  + '% loaded');
+                this.loadingModel = true
+            }, (error) => {
+                console.log("Failed to load fbx model: " + error);
+                this.loadingModel = false
+            })
+
+        },
         configureURLOverride() {
             this.loaders.manager.setURLModifier((url) => {
                 let filename = url.split("/").pop()
@@ -596,9 +639,10 @@ export default {
             this.missingFiles = []
 
             this.addDefaultCube()
-            this.clearFileMap()
+            //this.clearFileMap()
         },
         clearFileMap() {
+            console.log("clearing")
             this.fileMap.forEach((url) => {
                 console.log("revoking url: ", url)
                 URL.revokeObjectURL(url)
@@ -731,6 +775,10 @@ export default {
         this.onWindowResize()
     },
     watch: {
+        fileUploaded() {
+            console.log("file uploaded?")
+            //this.clearFileMap()
+        },
         scale() {
             this.scaleUpdate()
         },
