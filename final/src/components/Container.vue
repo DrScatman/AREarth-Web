@@ -82,7 +82,7 @@
                                             <v-btn color="blue-grey" v-if="!fileUploaded" :class="{ glow: !fileUploaded }" x-large class="ma-2 white--text" @click="uploadDialog = true">
                                                 upload model
                                             </v-btn>
-                                            <v-btn color="yellow" v-else x-large class="ma-2 black--text" @click="uploadDialog = true">
+                                            <v-btn color="yellow" v-else x-large class="ma-2 black--text" @click="changeModel">
                                                 change model
                                             </v-btn>
                                         </v-card-actions>
@@ -111,11 +111,11 @@
 
                                                 <v-card-title>Upload</v-card-title>
                                                 <v-divider class="my-4"></v-divider>
-                                                <v-card-subtitle>Supported model formats: glTF, glb, obj</v-card-subtitle>
+                                                <v-card-subtitle>Supported model formats: glTF, glb, obj (obj + mtl), fbx</v-card-subtitle>
                                                 <v-card-subtitle class="red--text" v-if="missingFiles.length > 0" v-model="missingFiles">Missing Files: {{missingFiles.toString().replace(/,/g, ", ")}}</v-card-subtitle>
-                                                <v-card-subtitle class="light-green--text" v-if="primaryFileName && missingFiles.length === 0">Success!</v-card-subtitle>
+                                                <v-card-subtitle class="light-green--text" v-if="fileUploaded && missingFiles.length === 0">Success!</v-card-subtitle>
 
-                                                <vue-dropzone ref="dropzone" id="dropzone" :options="dropzoneOptions" @vdropzone-files-added="vFileAdded" @vdropzone-removed-file="vFileRemoved" useCustomSlot>
+                                                <vue-dropzone ref="dropzone" id="dropzone" :options="dropzoneOptions" @vdropzone-file-added="vFileAdded" @vdropzone-removed-file="vFileRemoved" useCustomSlot>
                                                     <div class="dropzone-custom-content">
                                                         <h3 class="dropzone-custom-title">Drag and drop to upload content!</h3>
                                                         <div class="subtitle">...or click to select a file from your computer</div>
@@ -330,6 +330,9 @@ export default {
                     }
                 }
             }
+            if(this.step === 2) {
+                this.clearFileMap()
+            }
             if(this.step < this.steps.length) {
                 this.step += 1
             }
@@ -442,9 +445,9 @@ export default {
             this.controls.update()
         },
         vFileAdded() {
-            setTimeout(() => {
+            this.$nextTick(() => {
                 let f = this.$refs.dropzone.getQueuedFiles()
-                console.log(f)
+                console.log('here', f)
                 //handle it as a bundle if possible
                 let files = this.$refs.dropzone.getQueuedFiles()
                 files.forEach((f) => {
@@ -475,7 +478,12 @@ export default {
                         this.loadOBJ(this.primaryFileName, this.mtlFileName)
                     }
                 }
-            }, 1000)
+            })
+        },
+        changeModel() {
+            this.uploadDialog = true
+            this.clearFileMap()
+            this.$refs.dropzone.removeAllFiles()
         },
         loadGLTF(url) {
             this.loaders.gltf.load(url, (gltf) => {
