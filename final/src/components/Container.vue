@@ -79,7 +79,7 @@
                                         <v-card-title>Upload</v-card-title>
                                         <v-divider></v-divider>
                                         <v-card-actions>
-                                            <v-btn color="blue-grey" v-if="!fileUploaded" :class="{ glow: !fileUploaded }" x-large class="ma-2 white--text" @click="uploadDialog = true">
+                                            <v-btn v-if="!fileUploaded" x-large class="glow ma-2 white--text" @click="uploadDialog = true">
                                                 upload model
                                             </v-btn>
                                             <v-btn color="yellow" v-else x-large class="ma-2 black--text" @click="changeModel">
@@ -295,7 +295,24 @@ export default {
         dropzoneOptions: {
             url: "no_post",
             autoProcessQueue: false,
-            acceptedFiles: ".obj,.mtl,.gltf,.bin,.glb,.tga,.fbx,.ma,image/png,image/jpeg,image/jpg",
+            //this method does not work in firefox as it doesn't infer the file type
+            //acceptedFiles: ".obj,.mtl,.gltf,.bin,.glb,.fbx,.ma,image/png,image/jpeg,image/jpg",
+
+            //this is the solution
+            accept: (file, done) => {
+                const acceptedExts = [
+                    'jpeg', 'jpg', 'png', 'tga',
+                    'obj', 'mtl', 'gltf', 'glb',
+                    'fbx','bin', 'ma'
+                ]
+                let ext = file.name.split('.').pop()
+                if(acceptedExts.includes(ext)) {
+                    done()
+                }
+                else {
+                    done("File type not accepted")
+                }
+            },
         }
     }),
     methods: {
@@ -446,8 +463,6 @@ export default {
         },
         vFileAdded() {
             this.$nextTick(() => {
-                let f = this.$refs.dropzone.getQueuedFiles()
-                console.log('here', f)
                 //handle it as a bundle if possible
                 let files = this.$refs.dropzone.getQueuedFiles()
                 files.forEach((f) => {
@@ -783,10 +798,6 @@ export default {
         this.onWindowResize()
     },
     watch: {
-        fileUploaded() {
-            console.log("file uploaded?")
-            //this.clearFileMap()
-        },
         scale() {
             this.scaleUpdate()
         },
