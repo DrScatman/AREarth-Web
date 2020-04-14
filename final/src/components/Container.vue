@@ -115,7 +115,7 @@
                                                 <v-card-subtitle class="red--text" v-if="missingFiles.length > 0" v-model="missingFiles">Missing Files: {{missingFiles.toString().replace(/,/g, ", ")}}</v-card-subtitle>
                                                 <v-card-subtitle class="light-green--text" v-if="fileUploaded && missingFiles.length === 0">Success!</v-card-subtitle>
 
-                                                <vue-dropzone ref="dropzone" id="dropzone" :options="dropzoneOptions" @vdropzone-file-added="vFileAdded" @vdropzone-removed-file="vFileRemoved" useCustomSlot>
+                                                <vue-dropzone ref="dropzone" id="dropzone" :options="dropzoneOptions" @vdropzone-file-added="vFilesAdded" useCustomSlot>
                                                     <div class="dropzone-custom-content">
                                                         <h3 class="dropzone-custom-title">Drag and drop to upload content!</h3>
                                                         <div class="subtitle">...or click to select a file from your computer</div>
@@ -152,14 +152,14 @@
                                             <v-switch class="py-0" label="Show Floor" v-model="showFloor" @click.stop="toggleFloor"></v-switch>
                                             <v-switch  class="py-0" label="Show Model Axes" v-model="showAxes" @click.stop="toggleAxes"></v-switch>
                                             <v-switch  class="py-0" label="Show Anchor Location" v-model="showAnchor" @click.stop="toggleAnchor"></v-switch>
+                                            <v-switch  class="py-0" label="Show Person (~6ft)" v-model="showCharacter" @click.stop="toggleCharacter"></v-switch>
                                             <v-slider label="Model Scale" class="py-0" v-model="scale" min="1" max="1000"></v-slider>
-                                            <v-card-text class="pt-0">Estimated height: {{modelHeight}} units</v-card-text>
                                             <v-slider label="Position X" class="py-0" v-model="positionX" min="-1000" max="1000" ></v-slider>
                                             <v-slider label="Position Y" class="py-0" v-model="positionY" min="-1000" max="1000" ></v-slider>
                                             <v-slider label="Position Z" class="py-0" v-model="positionZ" min="-1000" max="1000" ></v-slider>
-                                            <v-slider label="Rotate X" class="py-0" v-model="rotationX" min="0" max="360" ></v-slider>
-                                            <v-slider label="Rotate Y" class="py-0" v-model="rotationY" min="0" max="360" ></v-slider>
-                                            <v-slider label="Rotate Z" class="py-0" v-model="rotationZ" min="0" max="360" ></v-slider>
+                                            <v-slider label="Rotate X" class="py-0" v-model="rotationX" min="-180" max="180" ></v-slider>
+                                            <v-slider label="Rotate Y" class="py-0" v-model="rotationY" min="-180" max="180" ></v-slider>
+                                            <v-slider label="Rotate Z" class="py-0" v-model="rotationZ" min="-180" max="180" ></v-slider>
                                         </v-container>
                                     </v-card>
                                 </v-container>
@@ -200,7 +200,7 @@
 
 <script>
 import Location from './Location'
-//import Viewer from './Viewer'
+
 import { AppDB, Storage, AppAuth } from './db-init.js'
 
 import {
@@ -208,7 +208,6 @@ import {
     PerspectiveCamera,
     BoxGeometry,
     MeshPhongMaterial,
-    MeshBasicMaterial,
     MeshStandardMaterial,
     Mesh,
     LoadingManager,
@@ -218,12 +217,16 @@ import {
     Box3,
     Sphere,
     Vector3,
-    PlaneGeometry,
     AxesHelper,
-    DoubleSide,
-    SphereGeometry,
+    Group,
+    CanvasTexture,
+    LinearFilter,
+    ClampToEdgeWrapping,
+    GridHelper,
 } from 'three'
 
+import character from './models/character.glb'
+import { lobby_urls } from './cubemaps.js'
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
@@ -271,13 +274,14 @@ export default {
         missingFiles: [],
         fileUploaded: false,
 
+        defaultCubemapTexture: null,
+        character: character,
         showFloor: false,
         showAxes: false,
-        //showWorldAxes: false,
+        showCharacter: false,
         showAnchor: false,
         floor: null,
         axes: null,
-        //worldAxes: null,
         anchor: null,
         scale: 100,
         modelHeight: 0,
@@ -320,6 +324,7 @@ export default {
             if(this.step === 1) {
                 //check to see if a urls exists
                 let loc = this.locations[this.selectedLocation]
+                //console.log(this.locations)
 
                 if(loc['texture']) {
                     console.log("texture is already loaded use that")
@@ -367,6 +372,7 @@ export default {
             this.setupScene()
             this.setupModifyScene()
             this.addDefaultCube()
+            this.setDefaultCubemapTexture()
         },
         animate() {
             requestAnimationFrame(this.animate)
@@ -385,22 +391,22 @@ export default {
             let w = viewer.clientWidth
             let h = viewer.clientHeight
 
-            let geo = new PlaneGeometry(1000,1000);
-            geo.rotateX(-Math.PI/2)
-            let mat = new MeshBasicMaterial({color: 0x777777 , side: DoubleSide})
-            this.floor= new Mesh(geo, mat)
-            this.axes = new AxesHelper(10)
+            //let geo = new PlaneGeometry(1000,1000);
+            //geo.rotateX(-Math.PI/2)
+            //let mat = new MeshBasicMaterial({color: 0x777777 , side: DoubleSide})
+            //this.floor= new Mesh(geo, mat)
+            this.axes = new AxesHelper(2)
             this.axes.visible = false
-            //this.worldAxes = new AxesHelper(10)
-            let sphereGeo = new SphereGeometry(1)
-            let sphereMat = new MeshBasicMaterial({color: 0xFF0000})
-            this.anchor = new Mesh(sphereGeo, sphereMat)
+            this.anchor = new AxesHelper(100)
+            //let sphereGeo = new SphereGeometry(0.1)
+            //let sphereMat = new MeshBasicMaterial({color: 0xFF0000})
+            //this.anchor = new Mesh(sphereGeo, sphereMat)
             this.anchor.visible = false
             //this.worldAxes.visible = false
             //this.scene.add(this.worldAxes)
             this.scene.add(this.anchor)
-            this.floor.visible = false
-            this.scene.add(this.floor)
+            //this.floor.visible = false
+            //this.scene.add(this.floor)
 
             this.modifyControls = new OrbitControls(this.camera, this.modifyRenderer.domElement)
             this.modifyControls.update()
@@ -429,9 +435,11 @@ export default {
         },
         addDefaultCube() {
             let geometry = new BoxGeometry(2, 2, 2)
-            let material = new MeshPhongMaterial()
+            let t = this.createTextTexture("N O    M O D E L", 'red')
+            t.repeat.set(1.25, 2.0)
+            t.offset.set(-0.125, -0.5)
+            let material = new MeshPhongMaterial({map: t})
             this.primaryModel = new Mesh(geometry, material)
-            this.camera.position.set(2, 2, 2)
             this.scene.add(this.primaryModel)
         },
         instantiateLoaders() {
@@ -452,6 +460,8 @@ export default {
             let hemis = new HemisphereLight(0xffffbb, 0x080820, 1);
             this.scene.add(hemis);
 
+            this.loadCharacter()
+
             this.renderer = new WebGLRenderer({canvas: canvas, antialias: true})
             this.renderer.setClearColor(0x777799, 1);
             this.renderer.outputEncoding = sRGBEncoding;
@@ -461,8 +471,20 @@ export default {
             this.controls.enablePan = false
             this.controls.update()
         },
-        vFileAdded() {
-            this.$nextTick(() => {
+        setDefaultCubemapTexture() {
+            this.defaultCubemapTexture = this.loaders.cubemap.load([
+                    lobby_urls[0],
+                    lobby_urls[1],
+                    lobby_urls[2],
+                    lobby_urls[3],
+                    lobby_urls[4],
+                    lobby_urls[5],
+            ])
+        },
+        vFilesAdded() {
+            //this.$nextTick(() => {
+            this.loadingModel = true
+            setTimeout(() => {
                 //handle it as a bundle if possible
                 let files = this.$refs.dropzone.getQueuedFiles()
                 files.forEach((f) => {
@@ -493,7 +515,8 @@ export default {
                         this.loadOBJ(this.primaryFileName, this.mtlFileName)
                     }
                 }
-            })
+            }, 1000)
+            //})
         },
         changeModel() {
             this.uploadDialog = true
@@ -504,31 +527,39 @@ export default {
             this.loaders.gltf.load(url, (gltf) => {
                 this.scene.remove(this.primaryModel)
                 this.primaryModel = gltf.scene
-                this.scene.add(this.primaryModel)
 
+                //adjust the model
+                this.normalizeModel()
                 this.setCameraToModel()
-                //this.primaryModel.geometry.center()
                 this.centerModel()
+
+                //layer it so that the geometry is centered
+                let group = new Group()
+                group.add(this.primaryModel)
+                this.primaryModel = group
+                this.scene.add(this.primaryModel)
 
                 this.primaryModel.traverse((child) => {
                     if(child.isMesh) {
                         //sometimes a mesh has a basicmaterial which will cause it to
                         //be completely reflective which is incorrect
                         if(child.material instanceof MeshStandardMaterial) {
-                            child.material.envMap = this.locations[this.selectedLocation]['texture']
+                            if(this.scene.background) {
+                                child.material.envMap = this.locations[this.selectedLocation]['texture']
+                            }
+                            else {
+                                child.material.envMap = this.defaultCubemapTexture
+                            }
                         }
                     }
                 })
                 this.primaryModel.add(this.axes)
-                //this.clearFileMap()
                 this.uploadDialog = false
-                this.loadingModel = false
                 this.fileUploaded = true
-                //this.$refs.dropzone.disable()
+                this.loadingModel = false
             }, (xhr) => {
                 let percentLoaded = (xhr.loaded / xhr.total*100).toFixed(2)
                 console.log(percentLoaded  + '% loaded');
-                this.loadingModel = true
             }, (error) => {
                 console.log("Failed to load gltf model: " + error);
                 this.loadingModel = false
@@ -541,11 +572,17 @@ export default {
                 this.loaders.obj.load(obj, (model) => {
                     this.scene.remove(this.primaryModel)
                     this.primaryModel = model
-                    this.scene.add(this.primaryModel)
 
+                    //adjust the model
+                    this.normalizeModel()
                     this.setCameraToModel()
-                    //this.centerModel()
+                    this.centerModel()
 
+                    //layer it so that the geometry is centered
+                    let group = new Group()
+                    group.add(this.primaryModel)
+                    this.primaryModel = group
+                    this.scene.add(this.primaryModel)
 
                     this.primaryModel.traverse((child) => {
                         if(child.isMesh) {
@@ -596,7 +633,7 @@ export default {
                         }
                     }
                 })
-                this.primaryModel.add(this.axes)
+                //this.primaryModel.add(this.axes)
                 //this.clearFileMap()
                 this.uploadDialog = false
                 this.loadingModel = false
@@ -610,6 +647,17 @@ export default {
                 console.log("Failed to load fbx model: " + error);
                 this.loadingModel = false
             })
+
+        },
+        getBoxDimensions() {
+            let box = new Box3().setFromObject(this.primaryModel)
+            return box.getSize(new Vector3)
+        },
+        normalizeModel() {
+            let dim = this.getBoxDimensions()
+            let max = Math.max(dim.x, dim.y, dim.z)
+            let s = 1.0/max
+            this.primaryModel.scale.set(s,s,s)
 
         },
         configureURLOverride() {
@@ -642,9 +690,6 @@ export default {
             this.primaryModel.position.z += (this.primaryModel.position.z - center.z);
             this.modelHeight = box.getSize(new Vector3).y.toFixed(2)
         },
-        vFileRemoved() {
-            console.log("removed file")
-        },
         removeAllFiles() {
             this.$refs.dropzone.removeAllFiles()
             this.resetUploadState()
@@ -660,26 +705,28 @@ export default {
             this.fileExt = null
             this.mtlFileName = ""
             this.missingFiles = []
+            this.camera.position.set(2, 2, 2)
 
             this.addDefaultCube()
             //this.clearFileMap()
         },
         clearFileMap() {
-            console.log("clearing")
+            //console.log("clearing")
             this.fileMap.forEach((url) => {
-                console.log("revoking url: ", url)
+                //console.log("revoking url: ", url)
                 URL.revokeObjectURL(url)
             })
             this.fileMap.clear()
         },
         toggleFloor() {
             if(!this.showFloor) {
+                this.floor = new GridHelper(100, 100)
+                this.scene.add(this.floor)
                 this.showFloor = true
-                this.floor.visible = true
             }
             else {
+                this.scene.remove(this.floor)
                 this.showFloor = false
-                this.floor.visible = false
             }
         },
         toggleAxes() {
@@ -704,12 +751,22 @@ export default {
                 this.anchor.visible = false
             }
         },
+        toggleCharacter() {
+            if(!this.showCharacter) {
+                this.showCharacter = true
+                this.character.visible = true
+            }
+            else {
+                this.showCharacter = false
+                this.character.visible = false
+            }
+        },
         scaleUpdate() {
             let s = this.scale/100.0
             this.primaryModel.scale.set(s, s, s)
             const box = new Box3().setFromObject(this.primaryModel);
             let dimensions = box.getSize(new Vector3)
-            this.modelHeight = (dimensions.y/10.0).toFixed(2)
+            this.modelHeight = dimensions.y.toFixed(2)
         },
         updatePosition() {
             this.primaryModel.position.set(this.positionX/100.0, this.positionY/100.0, this.positionZ/100.0)
@@ -747,8 +804,12 @@ export default {
                 const options = {
                     trs: true,
                     binary: true,
-               }
+                }
                 exporter.parse(this.primaryModel, (gltf) => {
+                    this.primaryModel.remove(this.axes)
+                    this.scene.remove(this.character)
+                    this.scene.remove(this.anchor)
+
                     let buffer = new Uint8Array(gltf)
                     let directory = useruid
                     let uploadTask = Storage.ref().child(`${directory}/${this.userModelName}.glb`).put(buffer)
@@ -758,6 +819,16 @@ export default {
                         console.log("Upload Failed!" + error.message)
                     }, () => {
                         console.log("Upload success!")
+/*
+                        if('modelName' in this.locations[this.selectedLocation]) {
+                            let oldModelName = this.locations[this.selectedLocation]['modelName']
+                            Storage.ref().child(`${useruid}/${oldModelName}.glb`).delete().then(() => {
+                                console.log(`Successfully deleted: ${oldModelName}.glb`)
+                            }).catch((err) => {
+                                console.log("Delete Error: " + err.message)
+                            })
+                        }
+                        */
                         //this.step = 1
                         //this.databaseOverlay = false
                         //works for now but now the best way to do this
@@ -768,6 +839,51 @@ export default {
             else {
                 console.log("You can't upload the default cube!")
             }
+        },
+        createTextLabelCanvas(size, text, color) {
+            const borderSize = 2
+            const ctx = document.createElement('canvas').getContext('2d')
+            const font = `${size}px Arial`
+            ctx.font = font
+            const width = ctx.measureText(text).width + borderSize*2
+            const height = size + borderSize*2
+            ctx.canvas.width = width
+            ctx.canvas.height = height
+            ctx.font = font
+            ctx.textBaseline = 'top'
+            ctx.fillStyle = color
+            ctx.fillRect(0,0,width,height)
+            ctx.fillStyle = 'white'
+            ctx.fillText(text, borderSize, borderSize)
+            return ctx.canvas
+        },
+        createTextTexture(text, color) {
+            let c = this.createTextLabelCanvas(64, text, color)
+            let texture = new CanvasTexture(c)
+            texture.minFilter = LinearFilter
+            texture.wrapS = ClampToEdgeWrapping
+            texture.wrapT = ClampToEdgeWrapping
+            //let labelMaterial = new SpriteMaterial({
+            //    map: texture,
+            //    transparent: true,
+            //})
+            //let label = new Sprite(labelMaterial)
+            return texture
+        },
+        loadCharacter() {
+            this.loaders.gltf.load(character, (gltf) => {
+                this.character = gltf.scene
+                this.character.position.set(0,0,-10)
+                this.character.visible = false
+                this.scene.add(this.character)
+                this.missingFiles = []
+            }, (xhr) => {
+                let percentLoaded = (xhr.loaded / xhr.total*100).toFixed(2)
+                console.log(percentLoaded  + '% loaded');
+            }, (error) => {
+                console.log("Failed to load gltf model: " + error);
+            });
+
         },
     },
     computed: {
@@ -830,7 +946,7 @@ export default {
                 })
             }
             else {
-                console.log("viewer - is logged in as: " + u.uid)
+                //console.log("viewer - is logged in as: " + u.uid)
                 this.isLoggedIn = true
             }
         });
@@ -858,12 +974,12 @@ export default {
                 })
 
                 const uid = AppAuth.currentUser.uid
-                console.log(`/users/${uid}/locations/${key}`)
+                //console.log(`/users/${uid}/locations/${key}`)
                 AppDB.ref(`/users/${uid}/locations/${key}`).once('value').then((snapshot) => {
                     let modelInfo = snapshot.val()
                     //removes the .glb extension
                     if(modelInfo) {
-                        console.log(modelInfo)
+                        //console.log(modelInfo)
                         let modelName = modelInfo.fileName
                         modelName = modelName.substring(0, modelName.length-4)
                         this.$set(this.locations[key], 'modelName', modelName)
