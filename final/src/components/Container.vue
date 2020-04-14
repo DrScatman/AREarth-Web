@@ -633,7 +633,7 @@ export default {
                         }
                     }
                 })
-                //this.primaryModel.add(this.axes)
+                this.primaryModel.add(this.axes)
                 //this.clearFileMap()
                 this.uploadDialog = false
                 this.loadingModel = false
@@ -799,6 +799,10 @@ export default {
             })
         },
         exportToStorage(useruid) {
+            this.primaryModel.remove(this.axes)
+            this.scene.remove(this.character)
+            this.scene.remove(this.anchor)
+
             if(this.primaryFileName) {
                 const exporter = new GLTFExporter()
                 const options = {
@@ -806,10 +810,6 @@ export default {
                     binary: true,
                 }
                 exporter.parse(this.primaryModel, (gltf) => {
-                    this.primaryModel.remove(this.axes)
-                    this.scene.remove(this.character)
-                    this.scene.remove(this.anchor)
-
                     let buffer = new Uint8Array(gltf)
                     let directory = useruid
                     let uploadTask = Storage.ref().child(`${directory}/${this.userModelName}.glb`).put(buffer)
@@ -873,7 +873,8 @@ export default {
         loadCharacter() {
             this.loaders.gltf.load(character, (gltf) => {
                 this.character = gltf.scene
-                this.character.position.set(0,0,-10)
+                this.character.position.set(0,0,-4)
+                this.character.scale.set(0.24, 0.24, 0.24)
                 this.character.visible = false
                 this.scene.add(this.character)
                 this.missingFiles = []
