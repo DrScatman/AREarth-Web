@@ -4,13 +4,13 @@ import "firebase/storage"
 import "firebase/auth"
 
 var firebaseConfig = {
-    apiKey: "AIzaSyDbwck1s6siv4l-hwqrRbkvJ_Gu1pQstqY",
-    authDomain: "ar-gallery-test.firebaseapp.com",
-    databaseURL: "https://ar-gallery-test.firebaseio.com",
-    projectId: "ar-gallery-test",
-    storageBucket: "ar-gallery-test.appspot.com",
-    messagingSenderId: "527978315902",
-    appId: "1:527978315902:web:3cc2871507585163e8d82f"
+    apiKey: "AIzaSyAwCbc1benTG0f4ZqcVBRGzn0WzE4MNCFU",
+    authDomain: "arearth-6503b.firebaseapp.com",
+    databaseURL: "https://arearth-6503b.firebaseio.com/",
+    projectId: "arearth-6503b",
+    storageBucket: "arearth-6503b.appspot.com",
+    messagingSenderId: "932369438684",
+    appId: "1:932369438684:web:8028dac6cf1ef0e517e119"
 };
 firebase.initializeApp(firebaseConfig);
 

@@ -1224,7 +1224,8 @@ export default {
       }
     });
 
-    AppDB.ref("/locations/")
+    const uid = AppAuth.currentUser.uid;
+    AppDB.ref(`/users/${uid}/locations`)
       .once("value")
       .then((snapshot) => {
         let locations = snapshot.val();
@@ -1264,7 +1265,6 @@ export default {
             });
 
           const uid = AppAuth.currentUser.uid;
-          //console.log(`/users/${uid}/locations/${key}`)
           AppDB.ref(`/users/${uid}/locations/${key}`)
             .once("value")
             .then((snapshot) => {
