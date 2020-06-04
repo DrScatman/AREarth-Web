@@ -1,21 +1,23 @@
 <template>
   <v-app>
-    <v-app-bar app height="100" src="./images/showcase.jpg">
+    <v-app-bar app height="70" src="./images/cartoonEarth.jpg">
       <template v-slot:img="{ props }">
         <v-img
           v-bind="props"
           position="center"
-          gradient="to top right, rgba(20,20,100,0.8), rgba(100,200,200,1.0)"
+          gradient="to top right, rgba(255,255,255,0), rgba(100,200,255,1.0)"
         ></v-img>
       </template>
-      <v-toolbar-title class="text-uppercase display-1 font-weight-bold">
-        Extended Reality Gallery
+      <v-toolbar-title class="text display-1 font-italic font-weight-regular">
+        AREarth
       </v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-btn color="yellow" @click="logout" class="black--text mx-4"
-        >logout</v-btn
+      <v-btn
+        class="white--text"
+        color="rgba(255, 255, 255, 0.5)"
+        @click="helpDialog = !helpDialog"
+        >help</v-btn
       >
-      <v-btn color="red" @click="helpDialog = !helpDialog">help</v-btn>
       <v-dialog v-model="helpDialog" max-width="1200">
         <v-card class="pa-4">
           <v-card-title>Help Menu</v-card-title>
@@ -29,11 +31,10 @@
               >
               <v-expansion-panel-content>
                 <p>Follow this tutorial!</p>
-                <p>Could be a youtube video or a gif</p>
                 <iframe
                   width="560"
                   height="315"
-                  src="https://www.youtube-nocookie.com/embed/ZvQEHLA1o8M"
+                  src=""
                   frameborder="0"
                   allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                   allowfullscreen
@@ -49,31 +50,11 @@
                 <iframe
                   width="560"
                   height="315"
-                  src="https://www.youtube-nocookie.com/embed/2kWupMxAmDA"
+                  src=""
                   frameborder="0"
                   allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                   allowfullscreen
                 ></iframe>
-              </v-expansion-panel-content>
-            </v-expansion-panel>
-            <v-expansion-panel>
-              <v-expansion-panel-header>Issue 3</v-expansion-panel-header>
-              <v-expansion-panel-content>
-                <p>Follow this tutorial!</p>
-                <iframe
-                  width="560"
-                  height="315"
-                  src="https://www.youtube-nocookie.com/embed/L1S-RkuQxxo"
-                  frameborder="0"
-                  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen
-                ></iframe>
-              </v-expansion-panel-content>
-            </v-expansion-panel>
-            <v-expansion-panel>
-              <v-expansion-panel-header>Issue 4</v-expansion-panel-header>
-              <v-expansion-panel-content>
-                <p>Follow this tutorial!</p>
               </v-expansion-panel-content>
             </v-expansion-panel>
           </v-expansion-panels>
@@ -86,6 +67,7 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+      <v-btn color="" @click="logout" class="mx-4">logout</v-btn>
     </v-app-bar>
     <v-content>
       <v-container class="fill-height">
@@ -113,8 +95,7 @@
                 </v-container>
                 <v-container class="sidebar">
                   <v-card>
-                    <v-card-title>Upload</v-card-title>
-                    <v-divider></v-divider>
+                    <v-card-title class="pa-auto">Upload:</v-card-title>
                     <v-card-actions>
                       <v-btn
                         v-if="!fileUploaded"
@@ -122,7 +103,7 @@
                         class="glow ma-2 white--text"
                         @click="uploadDialog = true"
                       >
-                        upload model
+                        Upload Model
                       </v-btn>
                       <v-btn
                         color="yellow"
@@ -131,24 +112,47 @@
                         class="ma-2 black--text"
                         @click="changeModel"
                       >
-                        change model
+                        Change Model
                       </v-btn>
                     </v-card-actions>
                     <v-divider></v-divider>
-                    <v-card-text v-if="!fileUploaded"
-                      >Please upload a model</v-card-text
+                    <v-card-text v-if="!fileUploaded" class="yellow--text"
+                      >Extract/Unzip Folder Before Uploading!</v-card-text
                     >
                     <v-container v-else fluid>
-                      <v-card-subtitle>Model Information:</v-card-subtitle>
-                      <v-card-text class="py-0">
-                        File type: {{ fileExt }}
-                      </v-card-text>
-                      <v-card-text class="py-0">
-                        File Uploaded: {{ primaryFileName }}
-                      </v-card-text>
-                      <v-card-text class="py-0">
-                        Triangles: {{ renderer.info.render.triangles }}
-                      </v-card-text>
+                      <v-card-title>Model Info:</v-card-title>
+                      <ul>
+                        <li v-if="!currFileSizeMB || currFileSizeMB == 0">
+                          <v-card-text class="py-1 yellow--text">
+                            File Size: Converting...
+                          </v-card-text>
+                        </li>
+                        <li v-else-if="withinMaxFileSize()">
+                          <v-card-text class="py-1 green--text">
+                            File Size:
+                            {{ currFileSizeMB.toFixed(2) + "MB" }}
+                          </v-card-text>
+                        </li>
+                        <li v-else>
+                          <v-card-text class="py-1 red--text">
+                            File Size:
+                            {{
+                              currFileSizeMB.toFixed(2) +
+                                `MB / ${maxFileSizeMB}MB`
+                            }}
+                          </v-card-text>
+                        </li>
+                        <li>
+                          <v-card-text class="py-1">
+                            Triangles: {{ renderer.info.render.triangles }}
+                          </v-card-text>
+                        </li>
+                        <li>
+                          <v-card-text class="py-1">
+                            Type: {{ fileExt }}
+                          </v-card-text>
+                        </li>
+                      </ul>
                     </v-container>
                     <v-dialog v-model="uploadDialog" max-width="1200">
                       <v-card>
@@ -160,7 +164,7 @@
                           <p
                             class="pa-4 text-center black lime--text lighten-3 display-2  rounded-border"
                           >
-                            Loading assets please wait
+                            Loading...
                             <v-progress-circular
                               indeterminate
                               color="lime accent-3"
@@ -171,7 +175,7 @@
                           </p>
                         </v-overlay>
 
-                        <v-card-title>Upload</v-card-title>
+                        <v-card-title>Upload:</v-card-title>
                         <v-divider class="my-4"></v-divider>
                         <v-card-subtitle
                           >Supported model formats: glTF, glb, obj (obj + mtl),
@@ -210,7 +214,7 @@
                         </vue-dropzone>
                         <v-card-actions>
                           <v-btn color="error" @click="removeAllFiles"
-                            >Remove all files</v-btn
+                            >Remove All Files</v-btn
                           >
                           <v-spacer></v-spacer>
                           <v-btn color="success" @click="uploadDialog = false"
@@ -221,13 +225,19 @@
                     </v-dialog>
                   </v-card>
                   <v-card class="mt-4">
-                    <v-card-title>Controls:</v-card-title>
-                    <v-card-text
-                      >1. Click and hold viewport to rotate camera</v-card-text
-                    >
-                    <v-card-text
-                      >2. Scroll wheel to zoom in and out</v-card-text
-                    >
+                    <v-card-title class="pa-auto">Controls:</v-card-title>
+                    <ul>
+                      <li>
+                        <v-card-text class="py-1">
+                          Click {{ "&" }} Hold: Rotate camera
+                        </v-card-text>
+                      </li>
+                      <li>
+                        <v-card-text class="pt-1 pb-4">
+                          Scroll-Wheel: Zoom in/out
+                        </v-card-text>
+                      </li>
+                    </ul>
                   </v-card>
                 </v-container>
               </v-container>
@@ -272,7 +282,7 @@
                         class="py-0"
                         v-model="scale"
                         min="1"
-                        max="1000"
+                        max="2000"
                       ></v-slider>
                       <v-slider
                         label="Position X"
@@ -328,28 +338,29 @@
                 <v-divider></v-divider>
                 <v-container class="pa-4" fluid>
                   <v-form>
-                    <v-card-text
-                      >Give a meaningful name to the model:</v-card-text
-                    >
+                    <v-card-text>Name Your Model File:</v-card-text>
                     <v-text-field
                       label="Model Name"
                       outlined
                       v-model="userModelName"
                     ></v-text-field>
-                    <v-card-text
-                      >Give a description for users to read:</v-card-text
-                    >
+                    <v-card-text>Describe Your Model:</v-card-text>
                     <v-textarea
                       label="Model Description"
                       outlined
                       v-model="userModelDescription"
                     ></v-textarea>
-                    <v-card-text
-                      >When you are happy with your model click
-                      submit</v-card-text
+                    <v-card-title
+                      >Allow Others To Select This Model To View:
+                    </v-card-title>
+                    <v-checkbox
+                      class="pa-auto"
+                      label="Private?"
+                      type="checkbox"
+                      id="checkbox"
+                      v-model="isPrivate"
                     >
-                    <v-spacer></v-spacer>
-                    <v-btn color="green" @click="saveToDatabase">submit</v-btn>
+                    </v-checkbox>
                   </v-form>
                 </v-container>
                 <v-overlay v-model="databaseOverlay" opacity="0.8">
@@ -361,17 +372,17 @@
         </v-stepper>
       </v-container>
     </v-content>
-    <v-footer app height="75">
+    <v-footer app height="70">
       <v-btn color="blue" @click="prevStep" x-large :disabled="step < 2"
         >back</v-btn
       >
       <v-spacer></v-spacer>
       <v-btn
-        :class="{ glow: !canNextStep }"
+        :class="{ glow: canNextStep }"
         x-large
         @click="nextStep"
-        :disabled="canNextStep"
-        >continue</v-btn
+        :disabled="!canNextStep"
+        >{{ step == 4 ? "SUBMIT" : "CONTINUE" }}</v-btn
       >
     </v-footer>
   </v-app>
@@ -425,6 +436,7 @@ export default {
   data: () => ({
     step: 1,
     steps: ["Choose Location", "Upload Model", "Modify Model", "Finish"],
+    maxFileSizeMB: 20,
 
     camera: null,
     renderer: null,
@@ -473,6 +485,7 @@ export default {
 
     userModelName: "",
     userModelDescription: "",
+    isPrivate: false,
     uploadProgress: 0,
 
     dropzoneOptions: {
@@ -546,6 +559,9 @@ export default {
       }
       if (this.step === 2) {
         this.clearFileMap();
+      }
+      if (this.step === 4) {
+        this.saveToDatabase();
       }
       if (this.step < this.steps.length) {
         this.step += 1;
@@ -1015,17 +1031,22 @@ export default {
         .then((snapshot) => {
           let modelData = snapshot.val();
           if (modelData) {
-            let oldFile = modelData.fileName;
-            if (oldFile != null && oldFile.length > 0)
-              this.removeFromStorage(uid, oldFile);
+            let oldFilePath = modelData.filePath;
+            if (oldFilePath != null && oldFilePath.split("/")[0] == uid) {
+              this.removeFromStorage(oldFilePath);
+            }
           }
         })
         // Add the new model file
         .then(() => {
+          let fileName = this.userModelName + ".glb";
           AppDB.ref(`users/${uid}/locations/${this.selectedLocation}`)
-            .set({
-              fileName: this.userModelName + ".glb",
-              description: this.userModelDescription,
+            .update({
+              fileName: fileName,
+              filePath: this.isPrivate
+                ? `${uid}/private/${fileName}`
+                : `${uid}/public/${fileName}`,
+              fileDesc: this.userModelDescription,
             })
             .then(() => {
               this.exportToStorage(uid);
@@ -1040,18 +1061,18 @@ export default {
           console.log("Error reading from realtime DB: " + err.message);
         });
     },
-    removeFromStorage(useruid, fileName) {
+    removeFromStorage(filePath) {
       Storage.ref()
-        .child(`${useruid}/${fileName}`)
+        .child(filePath)
         .delete()
         .then(() => {
-          console.log("File deleted: " + fileName);
+          console.log("Previous File Deleted: " + filePath);
         })
         .catch((err) => {
           console.log(
-            "Failed to delete previous file fileName: " +
-              fileName +
-              " Error: " +
+            "Failed to delete previous file at path: " +
+              filePath +
+              "\nError: " +
               err.message
           );
         });
@@ -1071,9 +1092,14 @@ export default {
           this.primaryModel,
           (gltf) => {
             let buffer = new Uint8Array(gltf);
+
             let directory = useruid;
             let uploadTask = Storage.ref()
-              .child(`${directory}/${this.userModelName}.glb`)
+              .child(
+                `${directory}/${this.isPrivate ? "private" : "public"}/${
+                  this.userModelName
+                }.glb`
+              )
               .put(buffer);
             uploadTask.on(
               "state_changed",
@@ -1145,7 +1171,7 @@ export default {
         character,
         (gltf) => {
           this.character = gltf.scene;
-          this.character.position.set(0, 0, -4);
+          this.character.position.set(0, 0, -1);
           this.character.scale.set(0.24, 0.24, 0.24);
           this.character.visible = false;
           this.scene.add(this.character);
@@ -1160,6 +1186,29 @@ export default {
         }
       );
     },
+    withinMaxFileSize() {
+      return this.currFileSizeMB && this.currFileSizeMB <= this.maxFileSizeMB;
+    },
+  },
+  asyncComputed: {
+    async currFileSizeMB() {
+      if (this.fileUploaded && this.primaryFileName) {
+        const exporter = new GLTFExporter();
+        const options = {
+          trs: true,
+          binary: true,
+        };
+        return new Promise((resolve) => {
+          exporter.parse(
+            this.primaryModel,
+            (gltf) => {
+              resolve(new Uint8Array(gltf).byteLength / 1000000);
+            },
+            options
+          );
+        });
+      }
+    },
   },
   computed: {
     locations() {
@@ -1171,15 +1220,21 @@ export default {
     canNextStep() {
       //disabled if the location hasn't been selected yet
       if (this.step === 1 && !this.selectedLocation) {
-        return true;
+        return false;
       }
-      if (this.step === 2 && !this.fileUploaded) {
-        return true;
+      if (
+        this.step === 2 &&
+        (!this.fileUploaded || !this.withinMaxFileSize())
+      ) {
+        return false;
       }
-      if (this.step === this.steps.length) {
-        return true;
+      if (
+        this.step === 4 &&
+        (this.userModelName == "" || !this.withinMaxFileSize())
+      ) {
+        return false;
       }
-      return false;
+      return true;
     },
     scene() {
       return this.$store.getters.scene;
@@ -1233,47 +1288,52 @@ export default {
       })
       .then(() => {
         const locations = this.$store.getters.locations;
+        if (!locations) {
+          console.log("No locations found for user");
+          return;
+        }
+
         const keys = Object.keys(locations);
         keys.forEach((key) => {
-          let p1 = Storage.ref()
-            .child(`cubemaps/${key}/px.png`)
-            .getDownloadURL();
-          let p2 = Storage.ref()
-            .child(`cubemaps/${key}/nx.png`)
-            .getDownloadURL();
-          let p3 = Storage.ref()
-            .child(`cubemaps/${key}/py.png`)
-            .getDownloadURL();
-          let p4 = Storage.ref()
-            .child(`cubemaps/${key}/ny.png`)
-            .getDownloadURL();
-          let p5 = Storage.ref()
-            .child(`cubemaps/${key}/pz.png`)
-            .getDownloadURL();
-          let p6 = Storage.ref()
-            .child(`cubemaps/${key}/nz.png`)
-            .getDownloadURL();
-          Promise.all([p1, p2, p3, p4, p5, p6])
-            .then((urls) => {
-              if (urls.length == 6) {
-                this.$set(this.locations[key], "urls", urls);
-              }
-              this.$forceUpdate();
-            })
-            .catch((err) => {
-              console.log("Error: ", err);
-            });
+          // let p1 = Storage.ref()
+          //   .child(`cubemaps/${key}/px.png`)
+          //   .getDownloadURL();
+          // let p2 = Storage.ref()
+          //   .child(`cubemaps/${key}/nx.png`)
+          //   .getDownloadURL();
+          // let p3 = Storage.ref()
+          //   .child(`cubemaps/${key}/py.png`)
+          //   .getDownloadURL();
+          // let p4 = Storage.ref()
+          //   .child(`cubemaps/${key}/ny.png`)
+          //   .getDownloadURL();
+          // let p5 = Storage.ref()
+          //   .child(`cubemaps/${key}/pz.png`)
+          //   .getDownloadURL();
+          // let p6 = Storage.ref()
+          //   .child(`cubemaps/${key}/nz.png`)
+          //   .getDownloadURL();
+          // Promise.all([p1, p2, p3, p4, p5, p6])
+          //   .then((urls) => {
+          //     if (urls.length == 6) {
+          //       this.$set(this.locations[key], "urls", urls);
+          //     }
+          //     this.$forceUpdate();
+          //   })
+          //   .catch((err) => {
+          //     console.log("Error: ", err);
+          //   });
 
           const uid = AppAuth.currentUser.uid;
           AppDB.ref(`/users/${uid}/locations/${key}`)
             .once("value")
             .then((snapshot) => {
-              let modelInfo = snapshot.val();
+              let location = snapshot.val();
               //removes the .glb extension
-              if (modelInfo) {
+              if (location && location.fileName) {
                 //console.log(modelInfo)
-                let modelName = modelInfo.fileName;
-                modelName = modelName.substring(0, modelName.length - 4);
+                let modelName = location.fileName;
+                modelName = modelName.spl.substring(0, modelName.length - 4);
                 this.$set(this.locations[key], "modelName", modelName);
                 console.log(this.locations[key]);
               }
@@ -1318,8 +1378,8 @@ canvas {
 }
 
 .sidebar {
-  max-width: 400px;
-  min-width: 300px;
+  max-width: 350px;
+  min-width: 200px;
 }
 
 .dz-progress {

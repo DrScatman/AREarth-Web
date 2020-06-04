@@ -50,5 +50,10 @@ export const store = new Vuex.Store({
             texture.encoding = sRGBEncoding
             state.locations[loc]['texture'] = texture
         },
+        clearAll: (state) => {
+            state.selectedLocation = "";
+            state.scene = new Scene();
+            state.locations = null;
+        }
     },
 })

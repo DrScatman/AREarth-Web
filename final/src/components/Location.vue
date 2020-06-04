@@ -1,184 +1,212 @@
 <template>
-    <v-container>
-        <v-toolbar-title class="text-uppercase font-weight-bold">Select a Location to place a model</v-toolbar-title>
-        <template v-for="(location,index) in locations" class="">
-            <v-card @click.stop="selectLocation(index)" :class="{selected: index === selectedLocation}" class="pa-2 ma-2" :key="index">
-                <v-container fluid>
-                    <v-row justify="end">
-                        <v-col cols="4">
-                            <v-card-title>{{location.name}}</v-card-title>
-                        </v-col>
-                        <v-spacer>
-                        </v-spacer>
-                        <v-col cols="4">
-                            <v-card-title v-if="location.modelName" class="green--text darken-4">{{location.modelName}}</v-card-title>
-                            <v-card-title v-else class="red--text">No Model</v-card-title>
-                        </v-col>
-                    </v-row>
-                </v-container>
-                <v-divider></v-divider>
-                <v-card-actions>
-                    <v-card-text>{{location.description}}</v-card-text>
-                    <v-spacer></v-spacer>
-                    <v-btn :disabled="!(urlsAtLocation(index))" @click.stop="previewLocation(index)" color="blue">preview</v-btn>
-                </v-card-actions>
-            </v-card>
-        </template>
-        <v-dialog v-model="previewDialog" max-width="1000" fluid eager>
-            <v-card>
-                <v-card-title>{{previewLocationName}}</v-card-title>
-                <v-divider></v-divider>
-                <v-container id="preview-viewer" fluid>
-                    <v-overlay absolute color="black" opacity="1" v-model="previewLoading">
-                        <v-card-text v-model="previewLocationName">
-                            Loading: {{previewLocationName}}
-                        </v-card-text>
-                    </v-overlay>
-                    <canvas class="fill-height fill-width" id="webgl-canvas-preview"></canvas>
-                </v-container>
-                <v-divider></v-divider>
-                <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn @click="previewDialog = false" color="blue">done</v-btn>
-                </v-card-actions>
-            </v-card>
-        </v-dialog>
-
-    </v-container>
+  <v-container>
+    <v-toolbar-title class="text font-weight-bold text-center">
+      <span v-if="locations"
+        >Select a Geospatial Location To Place a Model <v-divider></v-divider
+      ></span>
+      <span v-else
+        >No Model Locations Created
+        <v-divider></v-divider>
+        <a href="https://localhost:8080">Download The AREarth App!</a>
+      </span>
+    </v-toolbar-title>
+    <template v-for="(location, index) in locations" class="">
+      <v-card
+        @click.stop="selectLocation(index)"
+        :class="{ selected: index === selectedLocation }"
+        class="pa-2 ma-2"
+        :key="index"
+      >
+        <v-container fluid class="pa-0">
+          <v-row justify="end">
+            <v-col cols="6">
+              <v-card-title>{{ location.locationName }}</v-card-title>
+            </v-col>
+            <v-spacer> </v-spacer>
+            <v-col cols="3">
+              <v-card-title
+                v-if="location.modelName"
+                class="green--text darken-4"
+                >{{ location.modelName }}</v-card-title
+              >
+              <v-card-title v-else class="red--text text--disabled"
+                >NONE</v-card-title
+              >
+            </v-col>
+          </v-row>
+        </v-container>
+        <v-divider></v-divider>
+        <v-card-actions class="pa-auto">
+          <ul>
+            <v-list-item>{{ location.locationDesc }}</v-list-item>
+          </ul>
+          <v-spacer></v-spacer>
+          <!-- <v-btn
+            :disabled="!urlsAtLocation(index)"
+            @click.stop="previewLocation(index)"
+            color="blue"
+            >preview</v-btn
+          > -->
+        </v-card-actions>
+      </v-card>
+    </template>
+    <v-dialog v-model="previewDialog" max-width="1000" fluid eager>
+      <v-card>
+        <v-card-title>{{ previewLocationName }}</v-card-title>
+        <v-divider></v-divider>
+        <v-container id="preview-viewer" fluid>
+          <v-overlay
+            absolute
+            color="black"
+            opacity="1"
+            v-model="previewLoading"
+          >
+            <v-card-text v-model="previewLocationName">
+              Loading: {{ previewLocationName }}
+            </v-card-text>
+          </v-overlay>
+          <canvas
+            class="fill-height fill-width"
+            id="webgl-canvas-preview"
+          ></canvas>
+        </v-container>
+        <v-divider></v-divider>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn @click="previewDialog = false" color="blue">done</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </v-container>
 </template>
 
 <script>
-
 import {
-    WebGLRenderer,
-    PerspectiveCamera,
-    sRGBEncoding,
-    Scene,
-    CubeTextureLoader,
-} from 'three'
+  WebGLRenderer,
+  PerspectiveCamera,
+  sRGBEncoding,
+  Scene,
+  CubeTextureLoader,
+} from "three";
 
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 export default {
-    name: 'Location',
-    components: {
-    },
-    data: () => ({
-        previewDialog: false,
-        previewLoading: true,
-        previewLocationName: "",
+  name: "Location",
+  components: {},
+  data: () => ({
+    previewDialog: false,
+    previewLoading: true,
+    previewLocationName: "",
 
-        renderer: null,
-        camera: null,
-        controls: null,
-        scene: null,
-        cubemapLoader: new CubeTextureLoader(),
-    }),
-    methods: {
-        init() {
-            let canvas = document.querySelector("#webgl-canvas-preview")
-            let viewer = document.querySelector("#preview-viewer")
-            this.scene = new Scene()
-            let w = viewer.clientWidth
-            let h = viewer.clientHeight
-            this.camera = new PerspectiveCamera(70, w/h, 0.01, 10000)
-            this.camera.position.set(2, 0, 2)
-            this.renderer = new WebGLRenderer({canvas: canvas, antialias: true})
-            this.renderer.setClearColor(0x0, 1);
-            this.renderer.outputEncoding = sRGBEncoding;
-            this.renderer.setSize(w, h, false)
-            this.controls = new OrbitControls(this.camera, this.renderer.domElement)
-            this.controls.enablePan = false
-            this.controls.enableZoom = false
-            this.controls.autoRotate = true
-            this.controls.update()
-        },
-        animate() {
-            requestAnimationFrame(this.animate)
-            this.controls.update()
-            this.renderer.render(this.scene, this.camera)
-        },
-        previewLocation(loc) {
-            this.previewDialog = true
-            this.previewLocationName = this.locations[loc].name
-            this.$nextTick(() => {
-                let viewer = document.querySelector("#preview-viewer")
-                let w = viewer.clientWidth
-                let h = viewer.clientHeight
-                this.camera.aspect = w/h
-                this.camera.updateProjectionMatrix()
-                this.renderer.setSize(w, h, false)
-                let urls = this.locations[loc]['urls']
-                if(!urls) {
-                    console.log("no preview available")
-                    return
-                }
-                let texture = this.locations[loc]['texture']
-                if(!texture) {
-                    this.previewLoading = true
-                    texture = this.cubemapLoader.load([
-                        urls[0],
-                        urls[1],
-                        urls[2],
-                        urls[3],
-                        urls[4],
-                        urls[5]
-                    ], () => {
-                        console.log("done loading texture")
-                        this.previewLoading = false
-                        let payload = {location: loc, texture: texture}
-                        this.$store.commit('setLocationCubemapTexture', payload)
-                    })
-                }
-                this.scene.background = texture
-            })
-            console.log("preview location: ", loc)
-        },
-        selectLocation(loc) {
-            this.$store.commit('setSelectedLocation', loc)
-        },
-        onWindowResize() {
-            let viewer = document.querySelector("#preview-viewer")
-            if(viewer) {
-                let w = viewer.clientWidth
-                let h = viewer.clientHeight
-                this.camera.aspect = w/h
-                this.camera.updateProjectionMatrix()
-                this.renderer.setSize(w, h, false)
+    renderer: null,
+    camera: null,
+    controls: null,
+    scene: null,
+    cubemapLoader: new CubeTextureLoader(),
+  }),
+  methods: {
+    init() {
+      let canvas = document.querySelector("#webgl-canvas-preview");
+      let viewer = document.querySelector("#preview-viewer");
+      this.scene = new Scene();
+      let w = viewer.clientWidth;
+      let h = viewer.clientHeight;
+      this.camera = new PerspectiveCamera(70, w / h, 0.01, 10000);
+      this.camera.position.set(2, 0, 2);
+      this.renderer = new WebGLRenderer({ canvas: canvas, antialias: true });
+      this.renderer.setClearColor(0x0, 1);
+      this.renderer.outputEncoding = sRGBEncoding;
+      this.renderer.setSize(w, h, false);
+      this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+      this.controls.enablePan = false;
+      this.controls.enableZoom = false;
+      this.controls.autoRotate = true;
+      this.controls.update();
+    },
+    animate() {
+      requestAnimationFrame(this.animate);
+      this.controls.update();
+      this.renderer.render(this.scene, this.camera);
+    },
+    previewLocation(loc) {
+      this.previewDialog = true;
+      this.previewLocationName = this.locations[loc].name;
+      this.$nextTick(() => {
+        let viewer = document.querySelector("#preview-viewer");
+        let w = viewer.clientWidth;
+        let h = viewer.clientHeight;
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(w, h, false);
+        let urls = this.locations[loc]["urls"];
+        if (!urls) {
+          console.log("no preview available");
+          return;
+        }
+        let texture = this.locations[loc]["texture"];
+        if (!texture) {
+          this.previewLoading = true;
+          texture = this.cubemapLoader.load(
+            [urls[0], urls[1], urls[2], urls[3], urls[4], urls[5]],
+            () => {
+              console.log("done loading texture");
+              this.previewLoading = false;
+              let payload = { location: loc, texture: texture };
+              this.$store.commit("setLocationCubemapTexture", payload);
             }
-        },
-        urlsAtLocation(loc) {
-            return ('urls' in this.locations[loc])
-        },
+          );
+        }
+        this.scene.background = texture;
+      });
+      console.log("preview location: ", loc);
     },
-    mounted() {
-        this.$nextTick(() => {
-            this.init()
-            this.animate()
-        })
-        window.addEventListener('resize', this.onWindowResize, false)
+    selectLocation(loc) {
+      this.$store.commit("setSelectedLocation", loc);
     },
-    computed: {
-        locations() {
-            return this.$store.getters.locations
-        },
-        selectedLocation() {
-            return this.$store.getters.selectedLocation
-        },
+    onWindowResize() {
+      let viewer = document.querySelector("#preview-viewer");
+      if (viewer) {
+        let w = viewer.clientWidth;
+        let h = viewer.clientHeight;
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(w, h, false);
+      }
     },
-}
+    urlsAtLocation(loc) {
+      return "urls" in this.locations[loc];
+    },
+  },
+  mounted() {
+    this.$nextTick(() => {
+      this.init();
+      this.animate();
+    });
+    window.addEventListener("resize", this.onWindowResize, false);
+  },
+  computed: {
+    locations() {
+      return this.$store.getters.locations;
+    },
+    selectedLocation() {
+      return this.$store.getters.selectedLocation;
+    },
+  },
+};
 </script>
 
 <style>
-
 .selected {
-    background-color: lightblue !important;
-    color: black !important;
+  background-color: #2195f3e0 !important;
 }
 
 #preview-viewer {
-    height: 600px;
-    width: 1000px;
+  height: 600px;
+  width: 1000px;
 }
 
+v-divider {
+  margin-bottom: 0.5rem;
+}
 </style>
