@@ -2,7 +2,8 @@
   <v-container>
     <v-toolbar-title class="text font-weight-bold text-center">
       <span v-if="locations"
-        >Select a Geospatial Location To Place a Model <v-divider></v-divider
+        >Select a Location To Place a Model
+        <v-divider class="mt-1 mb-2"></v-divider
       ></span>
       <span v-else
         >No Model Locations Created
@@ -18,36 +19,69 @@
         :key="index"
       >
         <v-container fluid class="pa-0">
-          <v-row justify="end">
-            <v-col cols="6">
-              <v-card-title>{{ location.locationName }}</v-card-title>
-            </v-col>
-            <v-spacer> </v-spacer>
-            <v-col cols="3">
-              <v-card-title
-                v-if="location.modelName"
-                class="green--text darken-4"
-                >{{ location.modelName }}</v-card-title
-              >
-              <v-card-title v-else class="red--text text--disabled"
-                >NONE</v-card-title
-              >
-            </v-col>
-          </v-row>
+          <v-col justify="start">
+            <v-tooltip top>
+              <template v-slot:activator="{ on }">
+                <v-row justify="center" rows="3" v-on="on">
+                  <v-icon
+                    class="mb-1 pa-0"
+                    style="color: rgba(255, 255, 255, 0.5)"
+                    >location_on</v-icon
+                  >
+                  <v-card-title class="primary--text pa-0 ml-2">{{
+                    location.locationName
+                  }}</v-card-title>
+                  <span class="ml-7"></span>
+                </v-row>
+              </template>
+              <span>Location Info</span>
+            </v-tooltip>
+            <v-row justify="center">
+              <v-card-subtitle class="pa-0 mb-2 text--disabled">{{
+                location.locationDesc
+              }}</v-card-subtitle>
+            </v-row>
+            <v-divider></v-divider>
+            <v-tooltip bottom>
+              <template v-slot:activator="{ on }">
+                <v-row justify="center" class="mt-2" v-on="on">
+                  <v-icon
+                    class="mb-1 pa-0"
+                    style="color: rgba(255, 255, 255, 0.5)"
+                    >category</v-icon
+                  >
+                  <v-card-title
+                    v-if="location.modelName"
+                    class="green--text darken-4 pa-0 ml-2"
+                    >{{ location.modelName }}
+                  </v-card-title>
+                  <v-card-title v-else class="text--disabled pl-0 pr-0 ml-2"
+                    >NONE
+                  </v-card-title>
+                  <span class="ml-7"></span>
+                </v-row>
+              </template>
+              <span>Model Info</span>
+            </v-tooltip>
+            <v-row v-if="location.modelDesc" justify="center">
+              <v-card-subtitle class="pa-0 text--disabled"
+                >{{ location.modelDesc }}
+              </v-card-subtitle>
+            </v-row>
+          </v-col>
         </v-container>
-        <v-divider></v-divider>
-        <v-card-actions class="pa-auto">
+        <!-- <v-card-actions class="pa-auto">
           <ul>
             <v-list-item>{{ location.locationDesc }}</v-list-item>
           </ul>
           <v-spacer></v-spacer>
-          <!-- <v-btn
+          <v-btn
             :disabled="!urlsAtLocation(index)"
             @click.stop="previewLocation(index)"
             color="blue"
             >preview</v-btn
-          > -->
-        </v-card-actions>
+          >
+        </v-card-actions> -->
       </v-card>
     </template>
     <v-dialog v-model="previewDialog" max-width="1000" fluid eager>
@@ -198,15 +232,11 @@ export default {
 
 <style>
 .selected {
-  background-color: #2195f3e0 !important;
+  background-color: rgba(255, 255, 255, 0.5) !important;
 }
 
 #preview-viewer {
   height: 600px;
   width: 1000px;
-}
-
-v-divider {
-  margin-bottom: 0.5rem;
 }
 </style>

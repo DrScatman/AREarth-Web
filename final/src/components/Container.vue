@@ -255,6 +255,12 @@
                     <v-container class="px-4 pt-0" fluid>
                       <v-switch
                         class="py-0"
+                        label="Show Person [~6ft]"
+                        v-model="showCharacter"
+                        @click.stop="toggleCharacter"
+                      ></v-switch>
+                      <v-switch
+                        class="py-0"
                         label="Show Floor"
                         v-model="showFloor"
                         @click.stop="toggleFloor"
@@ -271,18 +277,12 @@
                         v-model="showAnchor"
                         @click.stop="toggleAnchor"
                       ></v-switch>
-                      <v-switch
-                        class="py-0"
-                        label="Show Person (~6ft)"
-                        v-model="showCharacter"
-                        @click.stop="toggleCharacter"
-                      ></v-switch>
                       <v-slider
                         label="Model Scale"
                         class="py-0"
                         v-model="scale"
                         min="1"
-                        max="2000"
+                        max="1000"
                       ></v-slider>
                       <v-slider
                         label="Position X"
@@ -350,12 +350,12 @@
                       outlined
                       v-model="userModelDescription"
                     ></v-textarea>
-                    <v-card-title
+                    <v-card-text
                       >Allow Others To Select This Model To View:
-                    </v-card-title>
+                    </v-card-text>
                     <v-checkbox
                       class="pa-auto"
-                      label="Private?"
+                      label=" - private"
                       type="checkbox"
                       id="checkbox"
                       v-model="isPrivate"
@@ -467,9 +467,9 @@ export default {
 
     defaultCubemapTexture: null,
     character: character,
-    showFloor: false,
+    showFloor: true,
     showAxes: false,
-    showCharacter: false,
+    showCharacter: true,
     showAnchor: false,
     floor: null,
     axes: null,
@@ -1333,8 +1333,9 @@ export default {
               if (location && location.fileName) {
                 //console.log(modelInfo)
                 let modelName = location.fileName;
-                modelName = modelName.spl.substring(0, modelName.length - 4);
+                modelName = modelName.substring(0, modelName.length - 4);
                 this.$set(this.locations[key], "modelName", modelName);
+                this.$set(this.locations[key], "modelDesc", location.fileDesc);
                 console.log(this.locations[key]);
               }
             });
