@@ -95,12 +95,12 @@
                 </v-container>
                 <v-container class="sidebar">
                   <v-card>
-                    <v-card-title class="pa-auto">Upload:</v-card-title>
-                    <v-card-actions>
+                    <v-card-title class="pb-1">Upload:</v-card-title>
+                    <v-card-actions class="ml-2 mb-4">
                       <v-btn
                         v-if="!fileUploaded"
                         x-large
-                        class="glow ma-2 white--text"
+                        class="glow white--text"
                         @click="uploadDialog = true"
                       >
                         Upload Model
@@ -109,7 +109,7 @@
                         color="yellow"
                         v-else
                         x-large
-                        class="ma-2 black--text"
+                        class="black--text"
                         @click="changeModel"
                       >
                         Change Model
@@ -120,7 +120,7 @@
                       >Extract/Unzip Folder Before Uploading!</v-card-text
                     >
                     <v-container v-else fluid>
-                      <v-card-title>Model Info:</v-card-title>
+                      <v-card-title class="pa-1">Model Info:</v-card-title>
                       <ul>
                         <li v-if="!currFileSizeMB || currFileSizeMB == 0">
                           <v-card-text class="py-1 yellow--text">
@@ -175,25 +175,30 @@
                           </p>
                         </v-overlay>
 
-                        <v-card-title>Upload:</v-card-title>
-                        <v-divider class="my-4"></v-divider>
-                        <v-card-subtitle
-                          >Supported model formats: glTF, glb, obj (obj + mtl),
-                          fbx</v-card-subtitle
+                        <v-card-title style="justify-content: center"
+                          >Model Upload</v-card-title
                         >
                         <v-card-subtitle
-                          class="red--text"
+                          style="text-align: center"
+                          class="text--disabled ma-0"
+                          >Supported Model Types - .glTF, .glb, .fbx, .obj [.obj
+                          + .mtl]</v-card-subtitle
+                        >
+                        <v-card-subtitle
+                          style="text-align: center"
+                          class="red--text ma-0"
                           v-if="missingFiles.length > 0"
                           v-model="missingFiles"
-                          >Missing Files:
+                          >Missing Files -
                           {{
                             missingFiles.toString().replace(/,/g, ", ")
                           }}</v-card-subtitle
                         >
                         <v-card-subtitle
+                          style="text-align: center"
                           class="light-green--text"
                           v-if="fileUploaded && missingFiles.length === 0"
-                          >Success!</v-card-subtitle
+                          >SUCCESS</v-card-subtitle
                         >
 
                         <vue-dropzone
@@ -204,12 +209,26 @@
                           useCustomSlot
                         >
                           <div class="dropzone-custom-content">
-                            <h3 class="dropzone-custom-title">
-                              Drag and drop to upload content!
+                            <h3 class="dropzone-custom-title primary--text">
+                              Drag {{ "&" }} Drop To Upload
                             </h3>
-                            <div class="subtitle">
-                              ...or click to select a file from your computer
-                            </div>
+                            <v-card-subtitle
+                              class="subtitle mt-2 pa-0 white--text text--darken-2"
+                            >
+                              Or Click Icon To Select A Folder
+                            </v-card-subtitle>
+                            <button v-on:click="openDirectorySelection()">
+                              <v-icon>cloud_upload </v-icon>
+                            </button>
+                            <input
+                              id="dirInput"
+                              type="file"
+                              webkitdirectory="true"
+                              multiple="true"
+                              style="display: none"
+                              accept="image/* .jpeg, .jpg, .png, .tga, .obj, .mtl, .gltf, .glb, .fbx, .bin, .ma"
+                              v-on:input="vFilesAdded"
+                            />
                           </div>
                         </vue-dropzone>
                         <v-card-actions>
@@ -224,9 +243,9 @@
                       </v-card>
                     </v-dialog>
                   </v-card>
-                  <v-card class="mt-4">
-                    <v-card-title class="pa-auto">Controls:</v-card-title>
-                    <ul>
+                  <v-card class="mt-4" v-if="fileUploaded">
+                    <v-card-title class="pb-1">Controls:</v-card-title>
+                    <ul class="pl-9">
                       <li>
                         <v-card-text class="py-1">
                           Click {{ "&" }} Hold: Rotate camera
@@ -254,32 +273,32 @@
                     <v-divider class="my-0"></v-divider>
                     <v-container class="px-4 pt-0" fluid>
                       <v-switch
-                        class="py-0"
+                        class="py-0 mb-0"
                         label="Show Person [~6ft]"
                         v-model="showCharacter"
                         @click.stop="toggleCharacter"
                       ></v-switch>
                       <v-switch
-                        class="py-0"
+                        class="py-0 my-0"
                         label="Show Floor"
                         v-model="showFloor"
                         @click.stop="toggleFloor"
                       ></v-switch>
                       <v-switch
-                        class="py-0"
+                        class="py-0 my-0"
                         label="Show Model Axes"
                         v-model="showAxes"
                         @click.stop="toggleAxes"
                       ></v-switch>
                       <v-switch
-                        class="py-0"
+                        class="py-0 my-0"
                         label="Show Anchor Location"
                         v-model="showAnchor"
                         @click.stop="toggleAnchor"
                       ></v-switch>
                       <v-slider
                         label="Model Scale"
-                        class="py-0"
+                        class="py-0 my-0"
                         v-model="scale"
                         min="1"
                         max="1000"
@@ -467,9 +486,9 @@ export default {
 
     defaultCubemapTexture: null,
     character: character,
-    showFloor: true,
+    showFloor: false,
     showAxes: false,
-    showCharacter: true,
+    showCharacter: false,
     showAnchor: false,
     floor: null,
     axes: null,
@@ -491,6 +510,10 @@ export default {
     dropzoneOptions: {
       url: "no_post",
       autoProcessQueue: false,
+      addRemoveLinks: true,
+      uploadMultiple: true,
+      clickable: false,
+
       //this method does not work in firefox as it doesn't infer the file type
       //acceptedFiles: ".obj,.mtl,.gltf,.bin,.glb,.fbx,.ma,image/png,image/jpeg,image/jpg",
 
@@ -649,7 +672,7 @@ export default {
     },
     addDefaultCube() {
       let geometry = new BoxGeometry(2, 2, 2);
-      let t = this.createTextTexture("N O    M O D E L", "red");
+      let t = this.createTextTexture("N O N E", "black");
       t.repeat.set(1.25, 2.0);
       t.offset.set(-0.125, -0.5);
       let material = new MeshPhongMaterial({ map: t });
@@ -695,12 +718,19 @@ export default {
         lobby_urls[5],
       ]);
     },
+    openDirectorySelection() {
+      document.getElementById("dirInput").click();
+    },
     vFilesAdded() {
       //this.$nextTick(() => {
       this.loadingModel = true;
       setTimeout(() => {
         //handle it as a bundle if possible
-        let files = this.$refs.dropzone.getQueuedFiles();
+        let files = document.getElementById("dirInput").files;
+        if (!files || files.length === 0) {
+          console.log("dropzone");
+          files = this.$refs.dropzone.getQueuedFiles();
+        }
         files.forEach((f) => {
           if (
             f.name.endsWith(".obj") ||
@@ -1114,15 +1144,15 @@ export default {
               () => {
                 console.log("Upload success!");
                 /*
-                        if('modelName' in this.locations[this.selectedLocation]) {
-                            let oldModelName = this.locations[this.selectedLocation]['modelName']
-                            Storage.ref().child(`${useruid}/${oldModelName}.glb`).delete().then(() => {
-                                console.log(`Successfully deleted: ${oldModelName}.glb`)
-                            }).catch((err) => {
-                                console.log("Delete Error: " + err.message)
-                            })
-                        }
-                        */
+												if('modelName' in this.locations[this.selectedLocation]) {
+														let oldModelName = this.locations[this.selectedLocation]['modelName']
+														Storage.ref().child(`${useruid}/${oldModelName}.glb`).delete().then(() => {
+																console.log(`Successfully deleted: ${oldModelName}.glb`)
+														}).catch((err) => {
+																console.log("Delete Error: " + err.message)
+														})
+												}
+												*/
                 //this.step = 1
                 //this.databaseOverlay = false
                 //works for now but now the best way to do this
@@ -1389,6 +1419,8 @@ canvas {
 
 #dropzone {
   min-height: 50vh;
+  background-color: rgba(255, 255, 255, 0.5);
+  border: 2px solid rgba(0, 0, 0, 0.33);
 }
 
 .dz-drag-hover {

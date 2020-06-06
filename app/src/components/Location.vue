@@ -7,8 +7,8 @@
       ></span>
       <span v-else
         >No Model Locations Created
-        <v-divider></v-divider>
-        <a href="https://localhost:8080">Download The AREarth App!</a>
+        <v-divider class="mb-1"></v-divider>
+        <a href="https://localhost:8080">Dowload The AREarth App</a>
       </span>
     </v-toolbar-title>
     <template v-for="(location, index) in locations" class="">
