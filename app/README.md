@@ -1,4 +1,4 @@
-# final
+# AREarth
 
 ## Project setup
 ```
