@@ -232,7 +232,7 @@ export default {
 
 <style>
 .selected {
-  background-color: rgba(255, 255, 255, 0.5) !important;
+  background-color: rgba(255, 255, 255, 0.33) !important;
 }
 
 #preview-viewer {

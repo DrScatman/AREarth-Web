@@ -15,5 +15,5 @@ module.exports = {
             ]
         }
     },
-    publicPath: process.env.NODE_ENV === "production" ? "/~darre/Extended-Reality-Gallery/final/" : "/",
+    //publicPath: process.env.NODE_ENV === "production" ? "/~darre/Extended-Reality-Gallery/final/" : "/",
 }

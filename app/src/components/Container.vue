@@ -95,28 +95,27 @@
                 </v-container>
                 <v-container class="sidebar">
                   <v-card>
-                    <v-card-title class="pb-1">Upload:</v-card-title>
                     <v-card-actions class="ml-2 mb-4">
                       <v-btn
                         v-if="!fileUploaded"
                         x-large
-                        class="glow white--text"
+                        class="glow white--text mt-3"
                         @click="uploadDialog = true"
                       >
                         Upload Model
                       </v-btn>
                       <v-btn
-                        color="yellow"
+                        color="primary"
                         v-else
                         x-large
-                        class="black--text"
+                        class="mt-3"
                         @click="changeModel"
                       >
                         Change Model
                       </v-btn>
                     </v-card-actions>
                     <v-divider></v-divider>
-                    <v-card-text v-if="!fileUploaded" class="yellow--text"
+                    <v-card-text v-if="!fileUploaded" class="disabled--text"
                       >Extract/Unzip Folder Before Uploading!</v-card-text
                     >
                     <v-container v-else fluid>
@@ -130,7 +129,7 @@
                         <li v-else-if="withinMaxFileSize()">
                           <v-card-text class="py-1 green--text">
                             File Size:
-                            {{ currFileSizeMB.toFixed(2) + "MB" }}
+                            {{ currFileSizeMB.toFixed(2) + " MB" }}
                           </v-card-text>
                         </li>
                         <li v-else>
@@ -138,8 +137,20 @@
                             File Size:
                             {{
                               currFileSizeMB.toFixed(2) +
-                                `MB / ${maxFileSizeMB}MB`
+                                ` MB / ${maxFileSizeMB} MB`
                             }}
+                            <v-tooltip top>
+                              <template v-slot:activator="{ on }">
+                                <v-icon class="pb-1 pl-1" v-on="on"
+                                  >error_outline</v-icon
+                                >
+                              </template>
+                              <span>{{
+                                "Max Model Size Exceded - " +
+                                  maxFileSizeMB +
+                                  " MB"
+                              }}</span>
+                            </v-tooltip>
                           </v-card-text>
                         </li>
                         <li>
@@ -147,11 +158,11 @@
                             Triangles: {{ renderer.info.render.triangles }}
                           </v-card-text>
                         </li>
-                        <li>
+                        <!-- <li>
                           <v-card-text class="py-1">
                             Type: {{ fileExt }}
                           </v-card-text>
-                        </li>
+                        </li> -->
                       </ul>
                     </v-container>
                     <v-dialog v-model="uploadDialog" max-width="1200">
@@ -304,42 +315,42 @@
                         max="1000"
                       ></v-slider>
                       <v-slider
-                        label="Position X"
+                        label="X Position"
                         class="py-0"
                         v-model="positionX"
                         min="-1000"
                         max="1000"
                       ></v-slider>
                       <v-slider
-                        label="Position Y"
+                        label="Y Position"
                         class="py-0"
                         v-model="positionY"
                         min="-1000"
                         max="1000"
                       ></v-slider>
                       <v-slider
-                        label="Position Z"
+                        label="Z Position"
                         class="py-0"
                         v-model="positionZ"
                         min="-1000"
                         max="1000"
                       ></v-slider>
                       <v-slider
-                        label="Rotate X"
+                        label="X Rotate"
                         class="py-0"
                         v-model="rotationX"
                         min="-180"
                         max="180"
                       ></v-slider>
                       <v-slider
-                        label="Rotate Y"
+                        label="Y Rotate"
                         class="py-0"
                         v-model="rotationY"
                         min="-180"
                         max="180"
                       ></v-slider>
                       <v-slider
-                        label="Rotate Z"
+                        label="Z Rotate"
                         class="py-0"
                         v-model="rotationZ"
                         min="-180"
@@ -353,33 +364,36 @@
 
             <v-stepper-content step="4">
               <v-card class="pa-4">
-                <v-card-title>Almost there!</v-card-title>
+                <v-card-title>Almost There!</v-card-title>
                 <v-divider></v-divider>
                 <v-container class="pa-4" fluid>
                   <v-form>
-                    <v-card-text>Name Your Model File:</v-card-text>
+                    <v-card-subtitle class="pl-0"
+                      >Name Your Model File:</v-card-subtitle
+                    >
                     <v-text-field
                       label="Model Name"
                       outlined
                       v-model="userModelName"
                     ></v-text-field>
-                    <v-card-text>Describe Your Model:</v-card-text>
+                    <v-card-subtitle class="pl-0"
+                      >Describe Your Model:</v-card-subtitle
+                    >
                     <v-textarea
                       label="Model Description"
                       outlined
                       v-model="userModelDescription"
                     ></v-textarea>
-                    <v-card-text
-                      >Allow Others To Select This Model To View:
-                    </v-card-text>
-                    <v-checkbox
-                      class="pa-auto"
-                      label=" - private"
-                      type="checkbox"
-                      id="checkbox"
+                    <v-card-subtitle class="pl-0"
+                      >Allow Others To Use This Model:
+                    </v-card-subtitle>
+                    <v-switch
+                      id="privateSwitch"
+                      class="py-0 my-0"
+                      v-bind:label="privacyStr"
                       v-model="isPrivate"
-                    >
-                    </v-checkbox>
+                      @change="togglePrivacy"
+                    ></v-switch>
                   </v-form>
                 </v-container>
                 <v-overlay v-model="databaseOverlay" opacity="0.8">
@@ -435,7 +449,7 @@ import {
 } from "three";
 
 import character from "./models/character.glb";
-import { lobby_urls } from "./cubemaps.js";
+import { lobby_urls, showcase_urls } from "./cubemaps.js";
 
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
@@ -505,6 +519,7 @@ export default {
     userModelName: "",
     userModelDescription: "",
     isPrivate: false,
+    privacyStr: "Public",
     uploadProgress: 0,
 
     dropzoneOptions: {
@@ -575,7 +590,7 @@ export default {
               }
             );
           } else {
-            this.scene.background = null;
+            //this.scene.background = null;
             console.log("no urls to use");
           }
         }
@@ -709,26 +724,40 @@ export default {
       this.controls.update();
     },
     setDefaultCubemapTexture() {
-      this.defaultCubemapTexture = this.loaders.cubemap.load([
-        lobby_urls[0],
-        lobby_urls[1],
-        lobby_urls[2],
-        lobby_urls[3],
-        lobby_urls[4],
-        lobby_urls[5],
-      ]);
+      this.defaultCubemapTexture = this.loaders.cubemap.load(
+        Math.random() === 0
+          ? [
+              lobby_urls[0],
+              lobby_urls[1],
+              lobby_urls[2],
+              lobby_urls[3],
+              lobby_urls[4],
+              lobby_urls[5],
+            ]
+          : [
+              showcase_urls[0],
+              showcase_urls[1],
+              showcase_urls[2],
+              showcase_urls[3],
+              showcase_urls[4],
+              showcase_urls[5],
+            ],
+        () => {
+          this.scene.background = this.defaultCubemapTexture;
+        }
+      );
     },
     openDirectorySelection() {
       document.getElementById("dirInput").click();
     },
     vFilesAdded() {
       //this.$nextTick(() => {
+      this.removeAllFiles();
       this.loadingModel = true;
       setTimeout(() => {
         //handle it as a bundle if possible
         let files = document.getElementById("dirInput").files;
         if (!files || files.length === 0) {
-          console.log("dropzone");
           files = this.$refs.dropzone.getQueuedFiles();
         }
         files.forEach((f) => {
@@ -958,6 +987,7 @@ export default {
     },
     removeAllFiles() {
       this.$refs.dropzone.removeAllFiles();
+      this.missingFiles = [];
       this.resetUploadState();
       //this.$refs.dropzone.enable()
     },
@@ -1219,6 +1249,9 @@ export default {
     withinMaxFileSize() {
       return this.currFileSizeMB && this.currFileSizeMB <= this.maxFileSizeMB;
     },
+    togglePrivacy() {
+      this.privacyStr = this.privacyStr === "Private" ? "Public" : "Private";
+    },
   },
   asyncComputed: {
     async currFileSizeMB() {
@@ -1236,6 +1269,8 @@ export default {
             },
             options
           );
+        }).catch((err) => {
+          console.error(err);
         });
       }
     },
@@ -1366,7 +1401,6 @@ export default {
                 modelName = modelName.substring(0, modelName.length - 4);
                 this.$set(this.locations[key], "modelName", modelName);
                 this.$set(this.locations[key], "modelDesc", location.fileDesc);
-                console.log(this.locations[key]);
               }
             });
         });
