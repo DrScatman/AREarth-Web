@@ -280,7 +280,18 @@
                 </v-container>
                 <v-container class="sidebar">
                   <v-card>
-                    <v-card-title>Modify</v-card-title>
+                    <v-card-title
+                      >Modify
+                      <v-col class="text-right">
+                        <v-btn
+                          color="primary"
+                          medium
+                          class="py-0"
+                          @click="resetModel"
+                          >Reset
+                        </v-btn>
+                      </v-col>
+                    </v-card-title>
                     <v-divider class="my-0"></v-divider>
                     <v-container class="px-4 pt-0" fluid>
                       <v-switch
@@ -297,22 +308,22 @@
                       ></v-switch>
                       <v-switch
                         class="py-0 my-0"
-                        label="Show Model Axes"
+                        label="Show Axis"
                         v-model="showAxes"
                         @click.stop="toggleAxes"
                       ></v-switch>
-                      <v-switch
+                      <!-- <v-switch
                         class="py-0 my-0"
                         label="Show Anchor Location"
                         v-model="showAnchor"
                         @click.stop="toggleAnchor"
-                      ></v-switch>
+                      ></v-switch> -->
                       <v-slider
                         label="Model Scale"
                         class="py-0 my-0"
                         v-model="scale"
                         min="1"
-                        max="1000"
+                        max="1500"
                       ></v-slider>
                       <v-slider
                         label="X Position"
@@ -391,7 +402,7 @@
                       id="privateSwitch"
                       class="py-0 my-0"
                       v-bind:label="privacyStr"
-                      v-model="isPrivate"
+                      v-model="isPublic"
                       @change="togglePrivacy"
                     ></v-switch>
                   </v-form>
@@ -415,7 +426,7 @@
         x-large
         @click="nextStep"
         :disabled="!canNextStep"
-        >{{ step == 4 ? "SUBMIT" : "CONTINUE" }}</v-btn
+        >{{ step === 4 ? "SUBMIT" : "CONTINUE" }}</v-btn
       >
     </v-footer>
   </v-app>
@@ -459,6 +470,7 @@ import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter";
 
 import vue2Dropzone from "vue2-dropzone";
+import { debounce } from "vue-debounce";
 
 export default {
   name: "Container",
@@ -518,7 +530,7 @@ export default {
 
     userModelName: "",
     userModelDescription: "",
-    isPrivate: false,
+    isPublic: true,
     privacyStr: "Public",
     uploadProgress: 0,
 
@@ -597,6 +609,8 @@ export default {
       }
       if (this.step === 2) {
         this.clearFileMap();
+        this.toggleCharacter();
+        this.toggleFloor();
       }
       if (this.step === 4) {
         this.saveToDatabase();
@@ -654,8 +668,10 @@ export default {
       //this.worldAxes.visible = false
       //this.scene.add(this.worldAxes)
       this.scene.add(this.anchor);
-      //this.floor.visible = false
-      //this.scene.add(this.floor)
+
+      this.floor = new GridHelper(100, 100);
+      this.scene.add(this.floor);
+      this.floor.visible = false;
 
       this.modifyControls = new OrbitControls(
         this.camera,
@@ -673,7 +689,7 @@ export default {
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(w, h, false);
       }
-      if (this.step == 3) {
+      if (this.step === 3) {
         let modifyViewer = document.querySelector("#viewer-modify");
         let w = modifyViewer.clientWidth;
         let h = modifyViewer.clientHeight;
@@ -725,7 +741,7 @@ export default {
     },
     setDefaultCubemapTexture() {
       this.defaultCubemapTexture = this.loaders.cubemap.load(
-        Math.random() === 0
+        Math.round(Math.random()) === 0
           ? [
               lobby_urls[0],
               lobby_urls[1],
@@ -1014,17 +1030,19 @@ export default {
       });
       this.fileMap.clear();
     },
-    toggleFloor() {
+    async toggleFloor() {
       if (!this.showFloor) {
-        this.floor = new GridHelper(100, 100);
-        this.scene.add(this.floor);
+        // this.floor = new GridHelper(100, 100);
+        // this.scene.add(this.floor);
+        this.floor.visible = true;
         this.showFloor = true;
       } else {
-        this.scene.remove(this.floor);
+        // this.scene.remove(this.floor);
+        this.floor.visible = false;
         this.showFloor = false;
       }
     },
-    toggleAxes() {
+    async toggleAxes() {
       if (!this.showAxes) {
         this.showAxes = true;
         this.axes.visible = true;
@@ -1033,7 +1051,7 @@ export default {
         this.axes.visible = false;
       }
     },
-    toggleAnchor() {
+    async toggleAnchor() {
       if (!this.showAnchor) {
         this.showAnchor = true;
         //this.worldAxes.visible = true
@@ -1044,7 +1062,7 @@ export default {
         this.anchor.visible = false;
       }
     },
-    toggleCharacter() {
+    async toggleCharacter() {
       if (!this.showCharacter) {
         this.showCharacter = true;
         this.character.visible = true;
@@ -1053,28 +1071,49 @@ export default {
         this.character.visible = false;
       }
     },
-    scaleUpdate() {
+    async updateScale() {
       let s = this.scale / 100.0;
       this.primaryModel.scale.set(s, s, s);
       const box = new Box3().setFromObject(this.primaryModel);
       let dimensions = box.getSize(new Vector3());
       this.modelHeight = dimensions.y.toFixed(2);
     },
-    updatePosition() {
+    async updatePosition() {
       this.primaryModel.position.set(
         this.positionX / 100.0,
         this.positionY / 100.0,
         this.positionZ / 100.0
       );
     },
-    updateRotationX() {
+    async updateRotationX() {
       this.primaryModel.rotation.x = (this.rotationX * Math.PI) / 180;
     },
-    updateRotationY() {
+    async updateRotationY() {
       this.primaryModel.rotation.y = (this.rotationY * Math.PI) / 180;
     },
-    updateRotationZ() {
+    async updateRotationZ() {
       this.primaryModel.rotation.z = (this.rotationZ * Math.PI) / 180;
+    },
+    async resetModel() {
+      this.showFloor = false;
+      this.showAxes = false;
+      this.showCharacter = false;
+      this.showAnchor = false;
+      this.scale = 100;
+      this.modelHeight = 0;
+      this.positionX = 0;
+      this.positionY = 0;
+      this.positionZ = 0;
+      this.rotationX = 0;
+      this.rotationY = 0;
+      this.rotationZ = 0;
+
+      this.axes.visible = false;
+      this.anchor.visible = false;
+      this.toggleCharacter();
+      this.toggleFloor();
+      this.updateScale();
+      this.updatePosition();
     },
     logout() {
       AppAuth.signOut().then(() => {
@@ -1092,7 +1131,7 @@ export default {
           let modelData = snapshot.val();
           if (modelData) {
             let oldFilePath = modelData.filePath;
-            if (oldFilePath != null && oldFilePath.split("/")[0] == uid) {
+            if (oldFilePath && oldFilePath.split("/")[0] === uid) {
               this.removeFromStorage(oldFilePath);
             }
           }
@@ -1103,9 +1142,9 @@ export default {
           AppDB.ref(`users/${uid}/locations/${this.selectedLocation}`)
             .update({
               fileName: fileName,
-              filePath: this.isPrivate
-                ? `${uid}/private/${fileName}`
-                : `${uid}/public/${fileName}`,
+              filePath: this.isPublic
+                ? `${uid}/public/${fileName}`
+                : `${uid}/private/${fileName}`,
               fileDesc: this.userModelDescription,
             })
             .then(() => {
@@ -1156,7 +1195,7 @@ export default {
             let directory = useruid;
             let uploadTask = Storage.ref()
               .child(
-                `${directory}/${this.isPrivate ? "private" : "public"}/${
+                `${directory}/${this.isPublic ? "public" : "private"}/${
                   this.userModelName
                 }.glb`
               )
@@ -1310,28 +1349,34 @@ export default {
   },
   watch: {
     scale() {
-      this.scaleUpdate();
+      this.debouncedUpdateScale();
     },
     positionX() {
-      this.updatePosition();
+      this.debounceUpdatePosition();
     },
     positionY() {
-      this.updatePosition();
+      this.debounceUpdatePosition();
     },
     positionZ() {
-      this.updatePosition();
+      this.debounceUpdatePosition();
     },
     rotationX() {
-      this.updateRotationX();
+      this.debounceUpdateRotationX();
     },
     rotationY() {
-      this.updateRotationY();
+      this.debounceUpdateRotationY();
     },
     rotationZ() {
-      this.updateRotationZ();
+      this.debounceUpdateRotationZ();
     },
   },
   created() {
+    this.debouncedUpdateScale = debounce(this.updateScale, 250);
+    this.debounceUpdatePosition = debounce(this.updatePosition, 250);
+    this.debounceUpdateRotationX = debounce(this.updateRotationX, 250);
+    this.debounceUpdateRotationY = debounce(this.updateRotationY, 250);
+    this.debounceUpdateRotationZ = debounce(this.updateRotationZ, 250);
+
     AppAuth.onAuthStateChanged((u) => {
       if (u == null) {
         console.log("viewer - not logged in");

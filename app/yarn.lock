@@ -5271,6 +5271,11 @@ kind-of@^6.0.0, kind-of@^6.0.2:
   resolved "https://registry.yarnpkg.com/kind-of/-/kind-of-6.0.3.tgz#07c05034a6c349fa06e24fa35aa76db4580ce4dd"
   integrity sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==
 
+kyanite@~1.4.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/kyanite/-/kyanite-1.4.0.tgz#ce4bc997d4443905239d3b42a4c3f23320c628e5"
+  integrity sha512-Sbk4T5mxNpliZtDQ1fsAVefynM2hH1hbsiigenjiMT2/MR/1eouooPweNBxhproMxgIqEJAzNkg6cnJoPmgUjw==
+
 launch-editor-middleware@^2.2.1:
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/launch-editor-middleware/-/launch-editor-middleware-2.2.1.tgz#e14b07e6c7154b0a4b86a0fd345784e45804c157"
@@ -8675,6 +8680,13 @@ vue-cli-plugin-vuetify@^2.0.5:
   dependencies:
     semver "^7.1.2"
     shelljs "^0.8.3"
+
+vue-debounce@^2.5.6:
+  version "2.5.6"
+  resolved "https://registry.yarnpkg.com/vue-debounce/-/vue-debounce-2.5.6.tgz#dfd5f90ad56e783011466a9ff0fbbba2f46b1089"
+  integrity sha512-gcRKMcFaj6x7Ev0Qkq1ZCtY2vhLtM1N6Oy9rLYFy5Eqm4bC8sVe3FM3wTZyLJz7FBvIAuKNpfJwZ/wyJZ61c/w==
+  dependencies:
+    kyanite "~1.4.0"
 
 vue-eslint-parser@^7.0.0:
   version "7.0.0"
