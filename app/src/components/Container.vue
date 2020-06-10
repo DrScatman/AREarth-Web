@@ -89,287 +89,291 @@
             </v-stepper-content>
 
             <v-stepper-content class="pa-0 ma-0" step="2">
-              <v-container class="d-flex flex-column">
-                <v-container class="sidebar">
-                  <v-card>
-                    <v-card-actions class="ml-2 mb-4">
-                      <v-btn
-                        v-if="!fileUploaded"
-                        x-large
-                        class="glow white--text mt-3"
-                        @click="uploadDialog = true"
+              <v-container class="d-flex">
+                <v-layout v-bind="binding">
+                  <v-container id="viewer">
+                    <canvas id="webgl-canvas" class=""></canvas>
+                  </v-container>
+                  <v-container id="sidebarUpload" class="sidebar">
+                    <v-card>
+                      <v-card-actions class="ml-2 mb-4">
+                        <v-btn
+                          v-if="!fileUploaded"
+                          x-large
+                          class="glow white--text mt-3"
+                          @click="uploadDialog = true"
+                        >
+                          Upload Model
+                        </v-btn>
+                        <v-btn
+                          color="primary"
+                          v-else
+                          x-large
+                          class="mt-3"
+                          @click="changeModel"
+                        >
+                          Change Model
+                        </v-btn>
+                      </v-card-actions>
+                      <v-divider></v-divider>
+                      <v-card-text v-if="!fileUploaded" class="disabled--text"
+                        >Extract/Unzip Folder Before Uploading!</v-card-text
                       >
-                        Upload Model
-                      </v-btn>
-                      <v-btn
-                        color="primary"
-                        v-else
-                        x-large
-                        class="mt-3"
-                        @click="changeModel"
-                      >
-                        Change Model
-                      </v-btn>
-                    </v-card-actions>
-                    <v-divider></v-divider>
-                    <v-card-text v-if="!fileUploaded" class="disabled--text"
-                      >Extract/Unzip Folder Before Uploading!</v-card-text
-                    >
-                    <v-container v-else fluid>
-                      <v-card-title class="pa-1">Model Info:</v-card-title>
-                      <ul>
-                        <li v-if="!currFileSizeMB || currFileSizeMB == 0">
-                          <v-card-text class="py-1 yellow--text">
-                            File Size: Converting...
-                          </v-card-text>
-                        </li>
-                        <li v-else-if="withinMaxFileSize()">
-                          <v-card-text class="py-1 green--text">
-                            File Size:
-                            {{ currFileSizeMB.toFixed(2) + " MB" }}
-                          </v-card-text>
-                        </li>
-                        <li v-else>
-                          <v-card-text class="py-1 red--text">
-                            File Size:
-                            {{
-                              currFileSizeMB.toFixed(2) +
-                                ` MB / ${maxFileSizeMB} MB`
-                            }}
-                            <v-tooltip top>
-                              <template v-slot:activator="{ on }">
-                                <v-icon class="pb-1 pl-1" v-on="on"
-                                  >error_outline</v-icon
-                                >
-                              </template>
-                              <span>{{
-                                "Max Model Size Exceded - " +
-                                  maxFileSizeMB +
-                                  " MB"
-                              }}</span>
-                            </v-tooltip>
-                          </v-card-text>
-                        </li>
-                        <li>
-                          <v-card-text class="py-1">
-                            Triangles: {{ renderer.info.render.triangles }}
-                          </v-card-text>
-                        </li>
-                        <!-- <li>
+                      <v-container v-else fluid>
+                        <v-card-title class="pa-1">Model Info:</v-card-title>
+                        <ul>
+                          <li v-if="!currFileSizeMB || currFileSizeMB == 0">
+                            <v-card-text class="py-1 yellow--text">
+                              File Size: Converting...
+                            </v-card-text>
+                          </li>
+                          <li v-else-if="withinMaxFileSize()">
+                            <v-card-text class="py-1 green--text">
+                              File Size:
+                              {{ currFileSizeMB.toFixed(2) + " MB" }}
+                            </v-card-text>
+                          </li>
+                          <li v-else>
+                            <v-card-text class="py-1 red--text">
+                              File Size:
+                              {{
+                                currFileSizeMB.toFixed(2) +
+                                  ` MB / ${maxFileSizeMB} MB`
+                              }}
+                              <v-tooltip top>
+                                <template v-slot:activator="{ on }">
+                                  <v-icon class="pb-1 pl-1" v-on="on"
+                                    >error_outline</v-icon
+                                  >
+                                </template>
+                                <span>{{
+                                  "Max Model Size Exceded - " +
+                                    maxFileSizeMB +
+                                    " MB"
+                                }}</span>
+                              </v-tooltip>
+                            </v-card-text>
+                          </li>
+                          <li>
+                            <v-card-text class="py-1">
+                              Triangles: {{ renderer.info.render.triangles }}
+                            </v-card-text>
+                          </li>
+                          <!-- <li>
                           <v-card-text class="py-1">
                             Type: {{ fileExt }}
                           </v-card-text>
                         </li> -->
+                        </ul>
+                      </v-container>
+                      <v-dialog v-model="uploadDialog" max-width="1200">
+                        <v-card>
+                          <v-overlay
+                            z-index="9999"
+                            absolute
+                            v-model="loadingModel"
+                          >
+                            <p
+                              class="pa-4 text-center black lime--text lighten-3 display-2  rounded-border"
+                            >
+                              Loading...
+                              <v-progress-circular
+                                indeterminate
+                                color="lime accent-3"
+                                width="15"
+                                size="100"
+                              >
+                              </v-progress-circular>
+                            </p>
+                          </v-overlay>
+
+                          <v-card-title style="justify-content: center"
+                            >Model Upload</v-card-title
+                          >
+                          <v-card-subtitle
+                            style="text-align: center"
+                            class="text--disabled ma-0"
+                            >Supported Model Types - .glTF, .glb, .fbx, .obj
+                            [.obj + .mtl]</v-card-subtitle
+                          >
+                          <v-card-subtitle
+                            style="text-align: center"
+                            class="red--text ma-0"
+                            v-if="missingFiles.length > 0"
+                            v-model="missingFiles"
+                            >Missing Files -
+                            {{
+                              missingFiles.toString().replace(/,/g, ", ")
+                            }}</v-card-subtitle
+                          >
+                          <v-card-subtitle
+                            style="text-align: center"
+                            class="light-green--text"
+                            v-if="fileUploaded && missingFiles.length === 0"
+                            >SUCCESS</v-card-subtitle
+                          >
+
+                          <vue-dropzone
+                            ref="dropzone"
+                            id="dropzone"
+                            :options="dropzoneOptions"
+                            @vdropzone-file-added="vFilesAdded"
+                            useCustomSlot
+                          >
+                            <div class="dropzone-custom-content">
+                              <h3 class="dropzone-custom-title primary--text">
+                                Drag {{ "&" }} Drop To Upload
+                              </h3>
+                              <v-card-subtitle
+                                class="subtitle mt-2 pa-0 white--text text--darken-2"
+                              >
+                                Or Click Icon To Select A Folder
+                              </v-card-subtitle>
+                              <button v-on:click="openDirectorySelection()">
+                                <v-icon>cloud_upload </v-icon>
+                              </button>
+                              <input
+                                id="dirInput"
+                                type="file"
+                                webkitdirectory="true"
+                                multiple="true"
+                                style="display: none"
+                                accept="image/* .jpeg, .jpg, .png, .tga, .obj, .mtl, .gltf, .glb, .fbx, .bin, .ma"
+                                v-on:input="vFilesAdded"
+                              />
+                            </div>
+                          </vue-dropzone>
+                          <v-card-actions>
+                            <v-btn color="error" @click="removeAllFiles"
+                              >Remove All Files</v-btn
+                            >
+                            <v-spacer></v-spacer>
+                            <v-btn color="success" @click="uploadDialog = false"
+                              >Done</v-btn
+                            >
+                          </v-card-actions>
+                        </v-card>
+                      </v-dialog>
+                    </v-card>
+                    <v-card class="mt-4" v-if="fileUploaded">
+                      <v-card-title class="pb-1">Controls:</v-card-title>
+                      <ul class="pl-9">
+                        <li>
+                          <v-card-text class="py-1">
+                            Click {{ "&" }} Hold: Rotate camera
+                          </v-card-text>
+                        </li>
+                        <li>
+                          <v-card-text class="pt-1 pb-4">
+                            Scroll-Wheel: Zoom in/out
+                          </v-card-text>
+                        </li>
                       </ul>
-                    </v-container>
-                    <v-dialog v-model="uploadDialog" max-width="1200">
-                      <v-card>
-                        <v-overlay
-                          z-index="9999"
-                          absolute
-                          v-model="loadingModel"
-                        >
-                          <p
-                            class="pa-4 text-center black lime--text lighten-3 display-2  rounded-border"
-                          >
-                            Loading...
-                            <v-progress-circular
-                              indeterminate
-                              color="lime accent-3"
-                              width="15"
-                              size="100"
-                            >
-                            </v-progress-circular>
-                          </p>
-                        </v-overlay>
-
-                        <v-card-title style="justify-content: center"
-                          >Model Upload</v-card-title
-                        >
-                        <v-card-subtitle
-                          style="text-align: center"
-                          class="text--disabled ma-0"
-                          >Supported Model Types - .glTF, .glb, .fbx, .obj [.obj
-                          + .mtl]</v-card-subtitle
-                        >
-                        <v-card-subtitle
-                          style="text-align: center"
-                          class="red--text ma-0"
-                          v-if="missingFiles.length > 0"
-                          v-model="missingFiles"
-                          >Missing Files -
-                          {{
-                            missingFiles.toString().replace(/,/g, ", ")
-                          }}</v-card-subtitle
-                        >
-                        <v-card-subtitle
-                          style="text-align: center"
-                          class="light-green--text"
-                          v-if="fileUploaded && missingFiles.length === 0"
-                          >SUCCESS</v-card-subtitle
-                        >
-
-                        <vue-dropzone
-                          ref="dropzone"
-                          id="dropzone"
-                          :options="dropzoneOptions"
-                          @vdropzone-file-added="vFilesAdded"
-                          useCustomSlot
-                        >
-                          <div class="dropzone-custom-content">
-                            <h3 class="dropzone-custom-title primary--text">
-                              Drag {{ "&" }} Drop To Upload
-                            </h3>
-                            <v-card-subtitle
-                              class="subtitle mt-2 pa-0 white--text text--darken-2"
-                            >
-                              Or Click Icon To Select A Folder
-                            </v-card-subtitle>
-                            <button v-on:click="openDirectorySelection()">
-                              <v-icon>cloud_upload </v-icon>
-                            </button>
-                            <input
-                              id="dirInput"
-                              type="file"
-                              webkitdirectory="true"
-                              multiple="true"
-                              style="display: none"
-                              accept="image/* .jpeg, .jpg, .png, .tga, .obj, .mtl, .gltf, .glb, .fbx, .bin, .ma"
-                              v-on:input="vFilesAdded"
-                            />
-                          </div>
-                        </vue-dropzone>
-                        <v-card-actions>
-                          <v-btn color="error" @click="removeAllFiles"
-                            >Remove All Files</v-btn
-                          >
-                          <v-spacer></v-spacer>
-                          <v-btn color="success" @click="uploadDialog = false"
-                            >Done</v-btn
-                          >
-                        </v-card-actions>
-                      </v-card>
-                    </v-dialog>
-                  </v-card>
-                  <v-card class="mt-4" v-if="fileUploaded">
-                    <v-card-title class="pb-1">Controls:</v-card-title>
-                    <ul class="pl-9">
-                      <li>
-                        <v-card-text class="py-1">
-                          Click {{ "&" }} Hold: Rotate camera
-                        </v-card-text>
-                      </li>
-                      <li>
-                        <v-card-text class="pt-1 pb-4">
-                          Scroll-Wheel: Zoom in/out
-                        </v-card-text>
-                      </li>
-                    </ul>
-                  </v-card>
-                </v-container>
-                <v-container id="viewer">
-                  <canvas id="webgl-canvas" class=""></canvas>
-                </v-container>
+                    </v-card>
+                  </v-container>
+                </v-layout>
               </v-container>
             </v-stepper-content>
 
             <v-stepper-content step="3" class="pa-0 ma-0">
               <v-container class="d-flex">
-                <v-container id="viewer-modify">
-                  <canvas id="webgl-canvas-modify" class=""></canvas>
-                </v-container>
-                <v-container class="sidebar">
-                  <v-card>
-                    <v-card-title
-                      >Modify
-                      <v-col class="text-right">
-                        <v-btn
-                          color="primary"
-                          medium
-                          class="py-0"
-                          @click="resetModel"
-                          >Reset
-                        </v-btn>
-                      </v-col>
-                    </v-card-title>
-                    <v-divider class="my-0"></v-divider>
-                    <v-container class="px-4 pt-0" fluid>
-                      <v-switch
-                        class="py-0 mb-0"
-                        label="Show Person [~6ft]"
-                        v-model="showCharacter"
-                        @click.stop="toggleCharacter"
-                      ></v-switch>
-                      <v-switch
-                        class="py-0 my-0"
-                        label="Show Floor"
-                        v-model="showFloor"
-                        @click.stop="toggleFloor"
-                      ></v-switch>
-                      <v-switch
-                        class="py-0 my-0"
-                        label="Show Axis"
-                        v-model="showAxes"
-                        @click.stop="toggleAxes"
-                      ></v-switch>
-                      <!-- <v-switch
+                <v-layout v-bind="binding">
+                  <v-container id="viewer-modify">
+                    <canvas id="webgl-canvas-modify" class=""></canvas>
+                  </v-container>
+                  <v-container id="sidebarModify" class="sidebar">
+                    <v-card>
+                      <v-card-title
+                        >Modify
+                        <v-col class="text-right">
+                          <v-btn
+                            color="primary"
+                            medium
+                            class="py-0"
+                            @click="resetModel"
+                            >Reset
+                          </v-btn>
+                        </v-col>
+                      </v-card-title>
+                      <v-divider class="my-0"></v-divider>
+                      <v-container class="px-4 pt-0" fluid>
+                        <v-switch
+                          class="py-0 mb-0"
+                          label="Show Person [~6ft]"
+                          v-model="showCharacter"
+                          @click.stop="toggleCharacter"
+                        ></v-switch>
+                        <v-switch
+                          class="py-0 my-0"
+                          label="Show Floor"
+                          v-model="showFloor"
+                          @click.stop="toggleFloor"
+                        ></v-switch>
+                        <v-switch
+                          class="py-0 my-0"
+                          label="Show Axis"
+                          v-model="showAxes"
+                          @click.stop="toggleAxes"
+                        ></v-switch>
+                        <!-- <v-switch
                         class="py-0 my-0"
                         label="Show Anchor Location"
                         v-model="showAnchor"
                         @click.stop="toggleAnchor"
                       ></v-switch> -->
-                      <v-slider
-                        label="Model Scale"
-                        class="py-0 my-0"
-                        v-model="scale"
-                        min="1"
-                        max="1500"
-                      ></v-slider>
-                      <v-slider
-                        label="X Position"
-                        class="py-0"
-                        v-model="positionX"
-                        min="-1000"
-                        max="1000"
-                      ></v-slider>
-                      <v-slider
-                        label="Y Position"
-                        class="py-0"
-                        v-model="positionY"
-                        min="-1000"
-                        max="1000"
-                      ></v-slider>
-                      <v-slider
-                        label="Z Position"
-                        class="py-0"
-                        v-model="positionZ"
-                        min="-1000"
-                        max="1000"
-                      ></v-slider>
-                      <v-slider
-                        label="X Rotate"
-                        class="py-0"
-                        v-model="rotationX"
-                        min="-180"
-                        max="180"
-                      ></v-slider>
-                      <v-slider
-                        label="Y Rotate"
-                        class="py-0"
-                        v-model="rotationY"
-                        min="-180"
-                        max="180"
-                      ></v-slider>
-                      <v-slider
-                        label="Z Rotate"
-                        class="py-0"
-                        v-model="rotationZ"
-                        min="-180"
-                        max="180"
-                      ></v-slider>
-                    </v-container>
-                  </v-card>
-                </v-container>
+                        <v-slider
+                          label="Model Scale"
+                          class="py-0 my-0"
+                          v-model="scale"
+                          min="1"
+                          max="1500"
+                        ></v-slider>
+                        <v-slider
+                          label="X Position"
+                          class="py-0"
+                          v-model="positionX"
+                          min="-1000"
+                          max="1000"
+                        ></v-slider>
+                        <v-slider
+                          label="Y Position"
+                          class="py-0"
+                          v-model="positionY"
+                          min="-1000"
+                          max="1000"
+                        ></v-slider>
+                        <v-slider
+                          label="Z Position"
+                          class="py-0"
+                          v-model="positionZ"
+                          min="-1000"
+                          max="1000"
+                        ></v-slider>
+                        <v-slider
+                          label="X Rotate"
+                          class="py-0"
+                          v-model="rotationX"
+                          min="-180"
+                          max="180"
+                        ></v-slider>
+                        <v-slider
+                          label="Y Rotate"
+                          class="py-0"
+                          v-model="rotationY"
+                          min="-180"
+                          max="180"
+                        ></v-slider>
+                        <v-slider
+                          label="Z Rotate"
+                          class="py-0"
+                          v-model="rotationZ"
+                          min="-180"
+                          max="180"
+                        ></v-slider>
+                      </v-container>
+                    </v-card>
+                  </v-container>
+                </v-layout>
               </v-container>
             </v-stepper-content>
 
@@ -1343,6 +1347,24 @@ export default {
     scene() {
       return this.$store.getters.scene;
     },
+    binding() {
+      const binding = {};
+      const su = document.getElementById("sidebarUpload");
+      const sm = document.getElementById("sidebarModify");
+      // Apply dynamic column break
+      if (this.$vuetify.breakpoint.xs) {
+        binding.column = true;
+        binding.reverse = true;
+
+        if (su) su.style.maxWidth = "100%";
+        if (sm) sm.style.maxWidth = "100%";
+      } else {
+        if (su) su.style.maxWidth = "22rem";
+        if (sm) sm.style.maxWidth = "22rem";
+      }
+
+      return binding;
+    },
   },
   updated() {
     this.onWindowResize();
@@ -1488,7 +1510,7 @@ canvas {
 }
 
 .sidebar {
-  max-width: 100%;
+  max-width: 22rem;
   min-width: 12.5rem;
 }
 
