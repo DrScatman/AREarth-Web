@@ -13,9 +13,9 @@
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn
-        class="black--text"
         color="rgba(255, 255, 255, 0.5)"
         @click="helpDialog = !helpDialog"
+        style="color: #272727"
         >help</v-btn
       >
       <v-dialog v-model="helpDialog" max-width="1200">
