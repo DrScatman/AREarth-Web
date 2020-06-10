@@ -90,11 +90,14 @@
 
             <v-stepper-content class="pa-0 ma-0" step="2">
               <v-container class="d-flex">
-                <v-layout v-bind="binding">
+                <v-layout v-bind="mobileResponsive">
                   <v-container id="viewer">
                     <canvas id="webgl-canvas" class=""></canvas>
                   </v-container>
-                  <v-container id="sidebarUpload" class="sidebar">
+                  <v-container
+                    class="sidebar"
+                    :style="isMobile ? 'max-width: 100%' : 'max-width: 22rem'"
+                  >
                     <v-card>
                       <v-card-actions class="ml-2 mb-4">
                         <v-btn
@@ -193,8 +196,8 @@
                           <v-card-subtitle
                             style="text-align: center"
                             class="text--disabled ma-0"
-                            >Supported Model Types - .glTF, .glb, .fbx, .obj
-                            [.obj + .mtl]</v-card-subtitle
+                            >Recommended Model Type - .glTF | Supported - .glTF,
+                            .glb, .fbx, .obj [.obj + .mtl]</v-card-subtitle
                           >
                           <v-card-subtitle
                             style="text-align: center"
@@ -235,10 +238,10 @@
                               <input
                                 id="dirInput"
                                 type="file"
-                                webkitdirectory="true"
+                                :webkitdirectory="!isMobile"
                                 multiple="true"
                                 style="display: none"
-                                accept="image/* .jpeg, .jpg, .png, .tga, .obj, .mtl, .gltf, .glb, .fbx, .bin, .ma"
+                                accept="image/png, image/jpeg, image/jpg, .tga, .obj, .mtl, .gltf, .glb, .fbx, .bin, .ma"
                                 v-on:input="vFilesAdded"
                               />
                             </div>
@@ -277,11 +280,14 @@
 
             <v-stepper-content step="3" class="pa-0 ma-0">
               <v-container class="d-flex">
-                <v-layout v-bind="binding">
+                <v-layout v-bind="mobileResponsive">
                   <v-container id="viewer-modify">
                     <canvas id="webgl-canvas-modify" class=""></canvas>
                   </v-container>
-                  <v-container id="sidebarModify" class="sidebar">
+                  <v-container
+                    class="sidebar"
+                    :style="isMobile ? 'max-width: 100%' : 'max-width: 22rem'"
+                  >
                     <v-card>
                       <v-card-title
                         >Modify
@@ -772,7 +778,6 @@ export default {
     },
     vFilesAdded() {
       //this.$nextTick(() => {
-      this.removeAllFiles();
       this.loadingModel = true;
       setTimeout(() => {
         //handle it as a bundle if possible
@@ -1347,23 +1352,18 @@ export default {
     scene() {
       return this.$store.getters.scene;
     },
-    binding() {
-      const binding = {};
-      const su = document.getElementById("sidebarUpload");
-      const sm = document.getElementById("sidebarModify");
-      // Apply dynamic column break
-      if (this.$vuetify.breakpoint.xs) {
-        binding.column = true;
-        binding.reverse = true;
+    isMobile() {
+      return this.$vuetify.breakpoint.xs;
+    },
+    mobileResponsive() {
+      const mobileResponsive = {};
 
-        if (su) su.style.maxWidth = "100%";
-        if (sm) sm.style.maxWidth = "100%";
-      } else {
-        if (su) su.style.maxWidth = "22rem";
-        if (sm) sm.style.maxWidth = "22rem";
+      if (this.$vuetify.breakpoint.xs) {
+        mobileResponsive.column = true;
+        mobileResponsive.reverse = true;
       }
 
-      return binding;
+      return mobileResponsive;
     },
   },
   updated() {
