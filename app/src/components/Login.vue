@@ -22,8 +22,8 @@
     </v-app-bar>
     <v-content>
       <v-container class="fill-height" fluid>
-        <v-row align="center" justify="center">
-          <v-col cols="8" class="text-center">
+        <v-row class="fill-width ma-0" align="center" justify="center">
+          <v-col lg="7" xs="10" class="text-center">
             <v-card>
               <v-toolbar>
                 <v-toolbar-title>Login</v-toolbar-title>

@@ -8,12 +8,12 @@
           gradient="to top right, rgba(255,255,255,0), rgba(100,200,255,1.0)"
         ></v-img>
       </template>
-      <v-toolbar-title class="text display-1 font-italic font-weight-regular">
+      <v-toolbar-title class="text display-1 font-italic font-weight-light">
         AREarth
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn
-        class="white--text"
+        class="black--text"
         color="rgba(255, 255, 255, 0.5)"
         @click="helpDialog = !helpDialog"
         >help</v-btn
@@ -89,10 +89,7 @@
             </v-stepper-content>
 
             <v-stepper-content class="pa-0 ma-0" step="2">
-              <v-container class="d-flex">
-                <v-container id="viewer">
-                  <canvas id="webgl-canvas" class=""></canvas>
-                </v-container>
+              <v-container class="d-flex flex-column">
                 <v-container class="sidebar">
                   <v-card>
                     <v-card-actions class="ml-2 mb-4">
@@ -269,6 +266,9 @@
                       </li>
                     </ul>
                   </v-card>
+                </v-container>
+                <v-container id="viewer">
+                  <canvas id="webgl-canvas" class=""></canvas>
                 </v-container>
               </v-container>
             </v-stepper-content>
@@ -1468,28 +1468,28 @@ export default {
 }
 
 #viewer {
-  max-height: 800px;
+  max-height: 50rem;
 }
 
 #webgl-canvas {
   width: 100%;
-  height: 600px;
+  height: 37.5rem;
 }
 
 #webgl-canvas-modify {
   width: 100%;
-  height: 600px;
+  height: 37.5rem;
 }
 
 canvas {
   width: 100%;
-  height: 600px;
+  height: 37.5rem;
   outline: none;
 }
 
 .sidebar {
-  max-width: 350px;
-  min-width: 200px;
+  max-width: 100%;
+  min-width: 12.5rem;
 }
 
 .dz-progress {
@@ -1524,7 +1524,7 @@ canvas {
 }
 
 .small-textfield {
-  width: 40px;
+  width: 2.5rem;
 }
 
 @keyframes glowing {

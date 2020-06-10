@@ -1,6 +1,6 @@
 <template>
   <v-container>
-    <v-toolbar-title class="text font-weight-bold text-center">
+    <v-toolbar-title class="text text-center text-wrap">
       <span v-if="locations"
         >Select a Location To Place a Model
         <v-divider class="mt-1 mb-2"></v-divider
@@ -28,7 +28,7 @@
                     style="color: rgba(255, 255, 255, 0.5)"
                     >location_on</v-icon
                   >
-                  <v-card-title class="primary--text pa-0 ml-2">{{
+                  <v-card-title class="primary--text text-wrap pa-0 ml-2">{{
                     location.locationName
                   }}</v-card-title>
                   <span class="ml-7"></span>
@@ -37,7 +37,7 @@
               <span>Location Info</span>
             </v-tooltip>
             <v-row justify="center">
-              <v-card-subtitle class="pa-0 mb-2 text--disabled">{{
+              <v-card-subtitle class="pa-0 mb-2 text-wrap text--disabled">{{
                 location.locationDesc
               }}</v-card-subtitle>
             </v-row>
@@ -52,7 +52,7 @@
                   >
                   <v-card-title
                     v-if="location.modelName"
-                    class="green--text darken-4 pa-0 ml-2"
+                    class="green--text text-wrap darken-4 pa-0 ml-2"
                     >{{ location.modelName }}
                   </v-card-title>
                   <v-card-title v-else class="text--disabled pl-0 pr-0 ml-2"
@@ -64,7 +64,7 @@
               <span>Model Info</span>
             </v-tooltip>
             <v-row v-if="location.modelDesc" justify="center">
-              <v-card-subtitle class="pa-0 text--disabled"
+              <v-card-subtitle class="pa-0 text--disabled text-wrap"
                 >{{ location.modelDesc }}
               </v-card-subtitle>
             </v-row>
