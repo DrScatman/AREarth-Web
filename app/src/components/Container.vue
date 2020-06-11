@@ -1154,7 +1154,10 @@ export default {
               filePath: this.isPublic
                 ? `${uid}/public/${fileName}`
                 : `${uid}/private/${fileName}`,
-              fileDesc: this.userModelDescription,
+              fileDesc:
+                this.userModelDescription
+                  ? this.userModelDescription
+                  : "",
             })
             .then(() => {
               this.exportToStorage(uid);
@@ -1343,7 +1346,9 @@ export default {
       }
       if (
         this.step === 4 &&
-        (this.userModelName == "" || !this.withinMaxFileSize())
+        (this.userModelName == "" ||
+          this.userModelName.includes("/") ||
+          !this.withinMaxFileSize())
       ) {
         return false;
       }
