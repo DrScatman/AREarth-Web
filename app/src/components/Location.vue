@@ -6,9 +6,15 @@
         <v-divider class="mt-1 mb-2"></v-divider
       ></span>
       <span v-else
-        >No Model Locations Created
-        <v-divider class="mb-1"></v-divider>
-        <a href="https://localhost:8080">Dowload The AREarth App</a>
+        >No Model Locations Found
+        <v-divider class="mt-1 mb-2"></v-divider>
+        <a
+          class="google-badge"
+          href="https://play.google.com/store/apps/details?id=com.sdbh.arearth&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1"
+          ><img
+            alt="Get it on Google Play"
+            src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+        /></a>
       </span>
     </v-toolbar-title>
     <template v-for="(location, index) in locations" class="">
@@ -231,6 +237,11 @@ export default {
 </script>
 
 <style>
+.google-badge img {
+  width: 50%;
+  height: 50%;
+}
+
 .selected {
   background-color: rgba(255, 255, 255, 0.33) !important;
 }
