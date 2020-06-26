@@ -470,7 +470,7 @@ import {
 } from "three";
 
 import character from "./models/character.glb";
-import { lobby_urls, showcase_urls } from "./cubemaps.js";
+import { all_urls } from "./cubemaps.js";
 
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
@@ -495,6 +495,7 @@ export default {
 
     camera: null,
     renderer: null,
+    pmremGenerator: null,
     controls: null,
     modifyRenderer: null,
 
@@ -751,23 +752,7 @@ export default {
     },
     setDefaultCubemapTexture() {
       this.defaultCubemapTexture = this.loaders.cubemap.load(
-        Math.round(Math.random()) === 0
-          ? [
-              lobby_urls[0],
-              lobby_urls[1],
-              lobby_urls[2],
-              lobby_urls[3],
-              lobby_urls[4],
-              lobby_urls[5],
-            ]
-          : [
-              showcase_urls[0],
-              showcase_urls[1],
-              showcase_urls[2],
-              showcase_urls[3],
-              showcase_urls[4],
-              showcase_urls[5],
-            ],
+        all_urls[Math.floor(Math.random() * all_urls.length)],
         () => {
           this.scene.background = this.defaultCubemapTexture;
         }
@@ -1154,10 +1139,9 @@ export default {
               filePath: this.isPublic
                 ? `${uid}/public/${fileName}`
                 : `${uid}/private/${fileName}`,
-              fileDesc:
-                this.userModelDescription
-                  ? this.userModelDescription
-                  : "",
+              fileDesc: this.userModelDescription
+                ? this.userModelDescription
+                : "",
             })
             .then(() => {
               this.exportToStorage(uid);
@@ -1398,11 +1382,11 @@ export default {
     },
   },
   created() {
-    this.debouncedUpdateScale = debounce(this.updateScale, 250);
-    this.debounceUpdatePosition = debounce(this.updatePosition, 250);
-    this.debounceUpdateRotationX = debounce(this.updateRotationX, 250);
-    this.debounceUpdateRotationY = debounce(this.updateRotationY, 250);
-    this.debounceUpdateRotationZ = debounce(this.updateRotationZ, 250);
+    this.debouncedUpdateScale = debounce(this.updateScale, 500);
+    this.debounceUpdatePosition = debounce(this.updatePosition, 500);
+    this.debounceUpdateRotationX = debounce(this.updateRotationX, 500);
+    this.debounceUpdateRotationY = debounce(this.updateRotationY, 500);
+    this.debounceUpdateRotationZ = debounce(this.updateRotationZ, 500);
 
     AppAuth.onAuthStateChanged((u) => {
       if (u == null) {
