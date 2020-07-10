@@ -119,9 +119,21 @@
                         </v-btn>
                       </v-card-actions>
                       <v-divider></v-divider>
-                      <v-card-text v-if="!fileUploaded" class="disabled--text"
-                        >Extract/Unzip Folder Before Uploading!</v-card-text
-                      >
+                      <div class="uploadHelp" v-if="!fileUploaded">
+                        <v-card-title class="pb-1 pt-3">Help:</v-card-title>
+                        <ul class="pl-9">
+                          <li>
+                            <v-card-text class="py-1">
+                              Extract / Unzip Folder Before Uploading!
+                            </v-card-text>
+                          </li>
+                          <li>
+                            <v-card-text class="pt-1 pb-3">
+                              Recommended Model Type .glTF
+                            </v-card-text>
+                          </li>
+                        </ul>
+                      </div>
                       <v-container v-else fluid>
                         <v-card-title class="pa-1">Model Info:</v-card-title>
                         <ul>
@@ -196,8 +208,8 @@
                           <v-card-subtitle
                             style="text-align: center"
                             class="text--disabled ma-0"
-                            >Recommended Model Type - .glTF | Supported - .glTF,
-                            .glb, .fbx, .obj [.obj + .mtl]</v-card-subtitle
+                            >Supported Model Types - .glTF, .glb, .fbx, .obj
+                            [.obj + .mtl]</v-card-subtitle
                           >
                           <v-card-subtitle
                             style="text-align: center"
@@ -225,12 +237,12 @@
                           >
                             <div class="dropzone-custom-content">
                               <h3 class="dropzone-custom-title primary--text">
-                                Drag {{ "&" }} Drop To Upload
+                                Drag {{ "&" }} Drop
                               </h3>
                               <v-card-subtitle
                                 class="subtitle mt-2 pa-0 white--text text--darken-2"
                               >
-                                Or Click Icon To Select A Folder
+                                Or Click Icon To Select A Folder / Directory
                               </v-card-subtitle>
                               <button v-on:click="openDirectorySelection()">
                                 <v-icon>cloud_upload </v-icon>
@@ -290,7 +302,7 @@
                   >
                     <v-card>
                       <v-card-title
-                        >Modify
+                        >Modify [Optional]
                         <v-col class="text-right">
                           <v-btn
                             color="primary"
@@ -321,56 +333,65 @@
                           v-model="showAxes"
                           @click.stop="toggleAxes"
                         ></v-switch>
-                        <!-- <v-switch
-                        class="py-0 my-0"
-                        label="Show Anchor Location"
-                        v-model="showAnchor"
-                        @click.stop="toggleAnchor"
-                      ></v-switch> -->
+                        <v-card-subtitle
+                          class="pa-0 v-label theme--dark"
+                          style="font-size: 16px"
+                          >Scale:</v-card-subtitle
+                        >
                         <v-slider
-                          label="Model Scale"
+                          label="A"
                           class="py-0 my-0"
                           v-model="scale"
                           min="1"
                           max="1500"
                         ></v-slider>
+                        <v-card-subtitle
+                          class="pa-0 v-label theme--dark"
+                          style="font-size: 16px"
+                          >Position:</v-card-subtitle
+                        >
                         <v-slider
-                          label="X Position"
+                          label="X"
                           class="py-0"
                           v-model="positionX"
                           min="-1000"
                           max="1000"
                         ></v-slider>
                         <v-slider
-                          label="Y Position"
+                          label="Y"
                           class="py-0"
                           v-model="positionY"
                           min="-1000"
                           max="1000"
                         ></v-slider>
                         <v-slider
-                          label="Z Position"
+                          label="Z"
                           class="py-0"
                           v-model="positionZ"
                           min="-1000"
                           max="1000"
                         ></v-slider>
+                        <v-card-subtitle
+                          class="pa-0 v-label theme--dark"
+                          style="font-size: 16px"
+                          >Rotation:</v-card-subtitle
+                        >
                         <v-slider
-                          label="X Rotate"
+                          label="X"
                           class="py-0"
                           v-model="rotationX"
                           min="-180"
                           max="180"
                         ></v-slider>
                         <v-slider
-                          label="Y Rotate"
+                          label="Y"
                           class="py-0"
                           v-model="rotationY"
                           min="-180"
                           max="180"
                         ></v-slider>
                         <v-slider
-                          label="Z Rotate"
+                          label="Z"
                           class="py-0"
                           v-model="rotationZ"
                           min="-180"
@@ -551,6 +572,8 @@ export default {
       addRemoveLinks: true,
       uploadMultiple: true,
       clickable: false,
+      createImageThumbnails: true,
+      parallelUploads: 12,
 
       //this method does not work in firefox as it doesn't infer the file type
       //acceptedFiles: ".obj,.mtl,.gltf,.bin,.glb,.fbx,.ma,image/png,image/jpeg,image/jpg",
@@ -621,7 +644,6 @@ export default {
       if (this.step === 2) {
         this.clearFileMap();
         this.toggleCharacter();
-        this.toggleFloor();
       }
       if (this.step === 4) {
         this.saveToDatabase();
@@ -770,6 +792,7 @@ export default {
         if (!files || files.length === 0) {
           files = this.$refs.dropzone.getQueuedFiles();
         }
+
         files.forEach((f) => {
           if (
             f.name.endsWith(".obj") ||
@@ -796,6 +819,9 @@ export default {
           } else {
             this.loadOBJ(this.primaryFileName, this.mtlFileName);
           }
+        } else {
+          this.loadingModel = false;
+          this.missingFiles.push(".gltf/.glb/.fbx/[.obj+.mtl]");
         }
       }, 1000);
       //})
@@ -1104,8 +1130,8 @@ export default {
 
       this.axes.visible = false;
       this.anchor.visible = false;
+      this.floor.visible = false;
       this.toggleCharacter();
-      this.toggleFloor();
       this.updateScale();
       this.updatePosition();
     },
@@ -1489,7 +1515,7 @@ export default {
 
 #webgl-canvas-modify {
   width: 100%;
-  height: 37.5rem;
+  height: 44rem;
 }
 
 canvas {

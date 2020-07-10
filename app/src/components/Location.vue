@@ -238,8 +238,8 @@ export default {
 
 <style>
 .google-badge img {
-  width: 50%;
-  height: 50%;
+  width: 75%;
+  height: 75%;
 }
 
 .selected {
