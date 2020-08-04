@@ -204,8 +204,10 @@ export default {
       AppAuth.signInWithEmailAndPassword(this.email, this.password)
         .then((u) => {
           //console.log("You logged in as ", u.user);
-          if (!u.emailVerified && u.user) {
-            u.user.sendEmailVerification();
+          if (!u.user || !u.user.emailVerified) {
+            if (u.user) {
+              u.user.sendEmailVerification();
+            }
             this.notifTitle = "Verify Account";
             this.notifMsg =
               "Please verify your email! A new email has been sent.";

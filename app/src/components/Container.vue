@@ -216,10 +216,8 @@
                             class="red--text ma-0"
                             v-if="missingFiles.length > 0"
                             v-model="missingFiles"
-                            >Missing Files -
-                            {{
-                              missingFiles.toString().replace(/,/g, ", ")
-                            }}</v-card-subtitle
+                            >Upload Remaining Files -
+                            {{ fmtMissingFiles() }}</v-card-subtitle
                           >
                           <v-card-subtitle
                             style="text-align: center"
@@ -240,21 +238,31 @@
                                 Drag {{ "&" }} Drop
                               </h3>
                               <v-card-subtitle
+                                v-if="!isMobile"
                                 class="subtitle mt-2 pa-0 white--text text--darken-2"
                               >
-                                Or Click Icon To Select A Folder / Directory
+                                Or Click Icon {{ "&" }} Select a Folder
+                                [Directory]
+                              </v-card-subtitle>
+                              <v-card-subtitle
+                                v-else
+                                class="subtitle mt-2 pa-0 white--text text--darken-2"
+                              >
+                                Or Click Icon {{ "&" }} Select Files
                               </v-card-subtitle>
                               <button v-on:click="openDirectorySelection()">
-                                <v-icon>cloud_upload </v-icon>
+                                <v-icon>cloud_upload</v-icon>
                               </button>
                               <input
                                 id="dirInput"
                                 type="file"
+                                name="dirInput[]"
+                                multiple="multiple"
                                 :webkitdirectory="!isMobile"
-                                multiple="true"
-                                style="display: none"
-                                accept="image/png, image/jpeg, image/jpg, .tga, .obj, .mtl, .gltf, .glb, .fbx, .bin, .ma"
                                 v-on:input="vFilesAdded"
+                                style="display: none"
+                                min="1"
+                                max="9999"
                               />
                             </div>
                           </vue-dropzone>
@@ -334,7 +342,7 @@
                           @click.stop="toggleAxes"
                         ></v-switch>
                         <v-card-subtitle
-                          class="pa-0 v-label theme--dark"
+                          class="pb-0 px-0 pt-1 v-label theme--dark"
                           style="font-size: 16px"
                           >Scale:</v-card-subtitle
                         >
@@ -354,22 +362,22 @@
                           label="X"
                           class="py-0"
                           v-model="positionX"
-                          min="-1000"
-                          max="1000"
+                          min="-500"
+                          max="500"
                         ></v-slider>
                         <v-slider
                           label="Y"
                           class="py-0"
                           v-model="positionY"
-                          min="-1000"
-                          max="1000"
+                          min="-500"
+                          max="500"
                         ></v-slider>
                         <v-slider
                           label="Z"
                           class="py-0"
                           v-model="positionZ"
-                          min="-1000"
-                          max="1000"
+                          min="-500"
+                          max="500"
                         ></v-slider>
                         <v-card-subtitle
                           class="pa-0 v-label theme--dark"
@@ -488,6 +496,9 @@ import {
   LinearFilter,
   ClampToEdgeWrapping,
   GridHelper,
+  AnimationMixer,
+  Clock as AnimClock,
+  AnimationClip,
 } from "three";
 
 import character from "./models/character.glb";
@@ -498,6 +509,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
 import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter";
 
 import vue2Dropzone from "vue2-dropzone";
@@ -514,11 +526,21 @@ export default {
     steps: ["Choose Location", "Upload Model", "Modify Model", "Finish"],
     maxFileSizeMB: 20,
 
-    camera: null,
-    renderer: null,
-    pmremGenerator: null,
-    controls: null,
-    modifyRenderer: null,
+    // camera: null,
+    // renderer: null,
+    // pmremGenerator: null,
+    // controls: null,
+    // modifyRenderer: null,
+
+    static() {
+      return {
+        camera: null,
+        renderer: WebGLRenderer,
+        pmremGenerator: null,
+        controls: null,
+        modifyRenderer: null,
+      };
+    },
 
     helpDialog: false,
     uploadDialog: false,
@@ -541,6 +563,10 @@ export default {
     fileExt: null,
     missingFiles: [],
     fileUploaded: false,
+
+    animMixer: new AnimationMixer(),
+    animClock: new AnimClock(),
+    animations: [AnimationClip],
 
     defaultCubemapTexture: null,
     character: character,
@@ -671,8 +697,13 @@ export default {
       requestAnimationFrame(this.animate);
       this.controls.update();
       this.modifyControls.update();
+      //this.addjustVertices();
+      //this.camera.updateProjectionMatrix();
       this.renderer.render(this.scene, this.camera);
       this.modifyRenderer.render(this.scene, this.camera);
+      if (this.animMixer) {
+        this.animMixer.update(this.animClock.getDelta());
+      }
     },
     setupModifyScene() {
       let canvas = document.querySelector("#webgl-canvas-modify");
@@ -713,6 +744,14 @@ export default {
       this.modifyControls.update();
       this.modifyRenderer.setSize(w, h, false);
     },
+    fmtMissingFiles() {
+      return this.missingFiles.length > 2
+        ? this.missingFiles
+            .slice(0, 2)
+            .toString()
+            .replace(/,/g, ", ") + ", etc."
+        : this.missingFiles.toString().replace(/,/g, ", ");
+    },
     onWindowResize() {
       if (this.step === 2) {
         let viewer = document.querySelector("#viewer");
@@ -750,6 +789,10 @@ export default {
       this.loaders.obj = new OBJLoader(this.loaders.manager);
       this.loaders.mtl = new MTLLoader(this.loaders.manager);
       this.loaders.cubemap = new CubeTextureLoader();
+
+      const dracoLoader = new DRACOLoader();
+      dracoLoader.setDecoderPath("/examples/js/libs/draco/");
+      this.loaders.gltf.setDRACOLoader(dracoLoader);
     },
     setupScene() {
       let canvas = document.querySelector("#webgl-canvas");
@@ -838,6 +881,15 @@ export default {
           this.scene.remove(this.primaryModel);
           this.primaryModel = gltf.scene;
 
+          // Play any animations
+          if (gltf.animations && gltf.animations[0])
+          {
+            this.animations = [gltf.animations[0]];
+            this.animMixer = new AnimationMixer(gltf.scene);
+          } else {
+            this.animations = gltf.animations;
+          }
+
           //adjust the model
           this.normalizeModel();
           this.setCameraToModel();
@@ -874,7 +926,8 @@ export default {
           console.log(percentLoaded + "% loaded");
         },
         (error) => {
-          console.log("Failed to load gltf model: " + error);
+          console.log("Failed to load gltf model: ");
+          console.error(error);
           this.loadingModel = false;
         }
       );
@@ -1208,6 +1261,7 @@ export default {
         const options = {
           trs: true,
           binary: true,
+          animations: this.animations,
         };
         exporter.parse(
           this.primaryModel,
@@ -1321,11 +1375,16 @@ export default {
         const options = {
           trs: true,
           binary: true,
+          animations: this.animations,
         };
         return new Promise((resolve) => {
           exporter.parse(
             this.primaryModel,
             (gltf) => {
+              if (this.animations && this.animations.length > 0) {
+                this.animMixer.clipAction(this.animations[0]).play();
+                this.animUpdate;
+              }
               resolve(new Uint8Array(gltf).byteLength / 1000000);
             },
             options

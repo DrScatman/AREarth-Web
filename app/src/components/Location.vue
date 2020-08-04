@@ -8,13 +8,26 @@
       <span v-else
         >No Model Locations Found
         <v-divider class="mt-1 mb-2"></v-divider>
-        <a
-          class="google-badge"
-          href="https://play.google.com/store/apps/details?id=com.sdbh.arearth&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1"
-          ><img
-            alt="Get it on Google Play"
-            src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-        /></a>
+        <v-container fluid>
+          <v-col justify="start">
+            <v-row justify="center">
+              <a
+                class="ios-badge"
+                href="https://apps.apple.com/us/app/ar-earth/id1523587669"
+                ><img alt="Get it on the AppStore" src="./images/iosBadge.svg"
+              /></a>
+            </v-row>
+            <v-row justify="center">
+              <a
+                class="google-badge"
+                href="https://play.google.com/store/apps/details?id=com.sdbh.arearth&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1"
+                ><img
+                  alt="Get it on Google Play"
+                  src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+              /></a>
+            </v-row>
+          </v-col>
+        </v-container>
       </span>
     </v-toolbar-title>
     <template v-for="(location, index) in locations" class="">
@@ -238,8 +251,8 @@ export default {
 
 <style>
 .google-badge img {
-  width: 75%;
-  height: 75%;
+  width: 8.5rem;
+  height: 3.65rem;
 }
 
 .selected {
