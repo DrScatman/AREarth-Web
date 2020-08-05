@@ -296,6 +296,9 @@
                   </v-container>
                 </v-layout>
               </v-container>
+              <div v-if="step === 2 && canNextStep">
+                {{ tryPlayAnimation() }}
+              </div>
             </v-stepper-content>
 
             <v-stepper-content step="3" class="pa-0 ma-0">
@@ -499,6 +502,7 @@ import {
   AnimationMixer,
   Clock as AnimClock,
   AnimationClip,
+  Scene,
 } from "three";
 
 import character from "./models/character.glb";
@@ -534,6 +538,7 @@ export default {
 
     static() {
       return {
+        scene: Scene,
         camera: null,
         renderer: WebGLRenderer,
         pmremGenerator: null,
@@ -695,6 +700,7 @@ export default {
     },
     animate() {
       requestAnimationFrame(this.animate);
+      let delta = this.animClock.getDelta();
       this.controls.update();
       this.modifyControls.update();
       //this.addjustVertices();
@@ -702,7 +708,13 @@ export default {
       this.renderer.render(this.scene, this.camera);
       this.modifyRenderer.render(this.scene, this.camera);
       if (this.animMixer) {
-        this.animMixer.update(this.animClock.getDelta());
+        this.animMixer.update(delta);
+      }
+    },
+    tryPlayAnimation() {
+      if (this.animations && this.animations.length > 0) {
+        this.animMixer.clipAction(this.animations[0]).play();
+        this.animUpdate;
       }
     },
     setupModifyScene() {
@@ -802,6 +814,7 @@ export default {
       this.camera = new PerspectiveCamera(70, w / h, 0.01, 10000);
       this.camera.position.set(2, 2, 2);
       let hemis = new HemisphereLight(0xffffbb, 0x080820, 1);
+      this.scene = new Scene();
       this.scene.add(hemis);
 
       this.loadCharacter();
@@ -882,8 +895,7 @@ export default {
           this.primaryModel = gltf.scene;
 
           // Play any animations
-          if (gltf.animations && gltf.animations[0])
-          {
+          if (gltf.animations && gltf.animations[0]) {
             this.animations = [gltf.animations[0]];
             this.animMixer = new AnimationMixer(gltf.scene);
           } else {
@@ -1381,10 +1393,6 @@ export default {
           exporter.parse(
             this.primaryModel,
             (gltf) => {
-              if (this.animations && this.animations.length > 0) {
-                this.animMixer.clipAction(this.animations[0]).play();
-                this.animUpdate;
-              }
               resolve(new Uint8Array(gltf).byteLength / 1000000);
             },
             options
@@ -1422,9 +1430,6 @@ export default {
         return false;
       }
       return true;
-    },
-    scene() {
-      return this.$store.getters.scene;
     },
     isMobile() {
       return this.$vuetify.breakpoint.xs;

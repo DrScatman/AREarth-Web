@@ -2,7 +2,6 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 
 import {
-    Scene,
     sRGBEncoding,
 } from 'three'
 
@@ -12,9 +11,6 @@ export const store = new Vuex.Store({
     state: {
         //selected location by user for model location by location id
         selectedLocation: "",
-
-        //scene used for rendering the uploading and modifying
-        scene: new Scene(),
 
         //object that bundles locations with a key of the id
         //to get name, description, urls, and texture
@@ -27,9 +23,6 @@ export const store = new Vuex.Store({
         },
         selectedLocation: (state) => {
             return state.selectedLocation
-        },
-        scene: (state) => {
-            return state.scene
         },
     },
     mutations: {
@@ -52,7 +45,6 @@ export const store = new Vuex.Store({
         },
         clearAll: (state) => {
             state.selectedLocation = "";
-            state.scene = new Scene();
             state.locations = null;
         }
     },
