@@ -135,6 +135,21 @@
                         </ul>
                       </div>
                       <v-container v-else fluid>
+                        <div v-if="animations && animations.length > 0">
+                          <v-card-title class="pa-1"
+                            >Animation Clip:</v-card-title
+                          >
+                          <v-select
+                            class="animSelect pa-1"
+                            v-model="animSelect"
+                            :items="animations"
+                            item-text="name"
+                            item-value="this"
+                            label="Select"
+                            return-object
+                            v-on:change="onAnimChanged"
+                          ></v-select>
+                        </div>
                         <v-card-title class="pa-1">Model Info:</v-card-title>
                         <ul>
                           <li v-if="!currFileSizeMB || currFileSizeMB == 0">
@@ -174,11 +189,6 @@
                               Triangles: {{ renderer.info.render.triangles }}
                             </v-card-text>
                           </li>
-                          <!-- <li>
-                          <v-card-text class="py-1">
-                            Type: {{ fileExt }}
-                          </v-card-text>
-                        </li> -->
                         </ul>
                       </v-container>
                       <v-dialog v-model="uploadDialog" max-width="1200">
@@ -296,9 +306,6 @@
                   </v-container>
                 </v-layout>
               </v-container>
-              <div v-if="step === 2 && canNextStep">
-                {{ tryPlayAnimation() }}
-              </div>
             </v-stepper-content>
 
             <v-stepper-content step="3" class="pa-0 ma-0">
@@ -503,6 +510,7 @@ import {
   Clock as AnimClock,
   AnimationClip,
   Scene,
+  LoopOnce,
 } from "three";
 
 import character from "./models/character.glb";
@@ -572,6 +580,7 @@ export default {
     animMixer: new AnimationMixer(),
     animClock: new AnimClock(),
     animations: [AnimationClip],
+    animSelect: AnimationClip,
 
     defaultCubemapTexture: null,
     character: character,
@@ -623,6 +632,17 @@ export default {
           "fbx",
           "bin",
           "ma",
+          "JPEG",
+          "JPG",
+          "PNG",
+          "TGA",
+          "OBJ",
+          "MTL",
+          "GLTF",
+          "GLB",
+          "FBX",
+          "BIN",
+          "MA",
         ];
         let ext = file.name.split(".").pop();
         if (acceptedExts.includes(ext)) {
@@ -700,22 +720,28 @@ export default {
     },
     animate() {
       requestAnimationFrame(this.animate);
-      let delta = this.animClock.getDelta();
       this.controls.update();
       this.modifyControls.update();
       //this.addjustVertices();
       //this.camera.updateProjectionMatrix();
       this.renderer.render(this.scene, this.camera);
       this.modifyRenderer.render(this.scene, this.camera);
-      if (this.animMixer) {
+      if (this.animMixer && this.animSelect) {
+        let delta = this.animClock.getDelta();
         this.animMixer.update(delta);
       }
     },
-    tryPlayAnimation() {
-      if (this.animations && this.animations.length > 0) {
-        this.animMixer.clipAction(this.animations[0]).play();
-        this.animUpdate;
+    onAnimChanged() {
+      if (this.animSelect && this.animMixer) {
+        this.playAnimationOnce(this.animSelect);
       }
+    },
+    playAnimationOnce(clip) {
+      let anim = this.animMixer.clipAction(clip);
+      anim.setLoop(LoopOnce);
+      anim.clampWhenFinished = true;
+      anim.enable = true;
+      anim.play();
     },
     setupModifyScene() {
       let canvas = document.querySelector("#webgl-canvas-modify");
@@ -854,12 +880,16 @@ export default {
             f.name.endsWith(".obj") ||
             f.name.endsWith(".fbx") ||
             f.name.endsWith(".gltf") ||
-            f.name.endsWith(".glb")
+            f.name.endsWith(".glb") ||
+            f.name.endsWith(".OBJ") ||
+            f.name.endsWith(".FBX") ||
+            f.name.endsWith(".GLTF") ||
+            f.name.endsWith(".GLB")
           ) {
             this.primaryFileName = f.name;
             this.fileExt = this.primaryFileName.split(".").pop();
           }
-          if (f.name.endsWith(".mtl")) {
+          if (f.name.endsWith(".mtl") || f.name.endsWith(".MTL")) {
             this.mtlFileName = f.name;
           }
           let url = URL.createObjectURL(f);
@@ -868,9 +898,14 @@ export default {
         if (this.primaryFileName) {
           //clear missing files
           this.missingFiles = [];
-          if (this.fileExt === "gltf" || this.fileExt === "glb") {
+          if (
+            this.fileExt === "gltf" ||
+            this.fileExt === "glb" ||
+            this.fileExt === "GLTF" ||
+            this.fileExt === "GLB"
+          ) {
             this.loadGLTF(this.primaryFileName);
-          } else if (this.fileExt === "fbx") {
+          } else if (this.fileExt === "fbx" || this.fileExt === "FBX") {
             this.loadFBX(this.primaryFileName);
           } else {
             this.loadOBJ(this.primaryFileName, this.mtlFileName);
@@ -894,13 +929,8 @@ export default {
           this.scene.remove(this.primaryModel);
           this.primaryModel = gltf.scene;
 
-          // Play any animations
-          if (gltf.animations && gltf.animations[0]) {
-            this.animations = [gltf.animations[0]];
-            this.animMixer = new AnimationMixer(gltf.scene);
-          } else {
-            this.animations = gltf.animations;
-          }
+          this.animations = gltf.animations;
+          //this.animMixer = new AnimationMixer(gltf.scene);
 
           //adjust the model
           this.normalizeModel();
@@ -985,6 +1015,8 @@ export default {
               this.loadingModel = false;
               this.fileUploaded = true;
               this.primaryModel.add(this.axes);
+              this.animations = model.animations;
+              //this.animMixer = new AnimationMixer(model);
               //this.$refs.dropzone.disable()
             },
             (xhr) => {
@@ -1034,6 +1066,9 @@ export default {
           this.loadingModel = false;
           this.fileUploaded = true;
           //this.$refs.dropzone.disable()
+
+          this.animations = model.animations;
+          //this.animMixer = new AnimationMixer(model);
         },
         (xhr) => {
           let percentLoaded = ((xhr.loaded / xhr.total) * 100).toFixed(2);
@@ -1041,7 +1076,7 @@ export default {
           this.loadingModel = true;
         },
         (error) => {
-          console.log("Failed to load fbx model: " + error);
+          console.error(error);
           this.loadingModel = false;
         }
       );
@@ -1273,7 +1308,7 @@ export default {
         const options = {
           trs: true,
           binary: true,
-          animations: this.animations,
+          animations: this.animSelect ? [this.animSelect] : this.animations,
         };
         exporter.parse(
           this.primaryModel,
@@ -1387,7 +1422,6 @@ export default {
         const options = {
           trs: true,
           binary: true,
-          animations: this.animations,
         };
         return new Promise((resolve) => {
           exporter.parse(
