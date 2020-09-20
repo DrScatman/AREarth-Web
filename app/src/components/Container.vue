@@ -536,7 +536,7 @@ export default {
   data: () => ({
     step: 1,
     steps: ["Choose Location", "Upload Model", "Modify Model", "Finish"],
-    maxFileSizeMB: 20,
+    maxFileSizeMB: 30,
 
     // camera: null,
     // renderer: null,
@@ -580,7 +580,7 @@ export default {
     animMixer: new AnimationMixer(),
     animClock: new AnimClock(),
     animations: [AnimationClip],
-    animSelect: AnimationClip,
+    animSelect: null,
 
     defaultCubemapTexture: null,
     character: character,
@@ -732,9 +732,9 @@ export default {
       }
     },
     onAnimChanged() {
-      if (this.animSelect && this.animMixer) {
-        this.playAnimationOnce(this.animSelect);
-      }
+      // if (this.animSelect && this.animMixer) {
+      //   this.playAnimationOnce(this.animSelect);
+      // }
     },
     playAnimationOnce(clip) {
       let anim = this.animMixer.clipAction(clip);
@@ -930,7 +930,7 @@ export default {
           this.primaryModel = gltf.scene;
 
           this.animations = gltf.animations;
-          //this.animMixer = new AnimationMixer(gltf.scene);
+          this.animMixer = new AnimationMixer(gltf.scene);
 
           //adjust the model
           this.normalizeModel();
@@ -1016,7 +1016,7 @@ export default {
               this.fileUploaded = true;
               this.primaryModel.add(this.axes);
               this.animations = model.animations;
-              //this.animMixer = new AnimationMixer(model);
+              this.animMixer = new AnimationMixer(model);
               //this.$refs.dropzone.disable()
             },
             (xhr) => {
@@ -1068,7 +1068,7 @@ export default {
           //this.$refs.dropzone.disable()
 
           this.animations = model.animations;
-          //this.animMixer = new AnimationMixer(model);
+          this.animMixer = new AnimationMixer(model);
         },
         (xhr) => {
           let percentLoaded = ((xhr.loaded / xhr.total) * 100).toFixed(2);
@@ -1272,14 +1272,16 @@ export default {
             .then(() => {
               this.exportToStorage(uid);
             })
-            .catch((err) => {
+            .catch((err2) => {
               this.databaseOverlay = false;
-              console.log("Error writing to realtime DB: " + err.message);
+              console.log("Error writing to realtime DB: " + err2.message);
+              console.error(err2);
             });
         })
         .catch((err) => {
           this.databaseOverlay = false;
           console.log("Error reading from realtime DB: " + err.message);
+          console.error(err);
         });
     },
     removeFromStorage(filePath) {
@@ -1305,11 +1307,19 @@ export default {
 
       if (this.primaryFileName) {
         const exporter = new GLTFExporter();
-        const options = {
-          trs: true,
-          binary: true,
-          animations: this.animSelect ? [this.animSelect] : this.animations,
-        };
+        let options = {};
+        if (this.animSelect) {
+          options = {
+            trs: true,
+            binary: true,
+            animations: [this.animSelect],
+          };
+        } else {
+          options = {
+            trs: true,
+            binary: true,
+          };
+        }
         exporter.parse(
           this.primaryModel,
           (gltf) => {
@@ -1332,6 +1342,7 @@ export default {
               },
               (error) => {
                 console.log("Upload Failed!" + error.message);
+                console.error(error);
               },
               () => {
                 console.log("Upload success!");

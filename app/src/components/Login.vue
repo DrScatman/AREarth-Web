@@ -63,12 +63,12 @@
               <v-divider />
               <v-card-text>
                 <v-btn @click="createDialog = true" color="green"
-                  >Create new account</v-btn
+                  >Create Account</v-btn
                 >
                 <v-dialog v-model="createDialog" max-width="1000">
                   <v-card>
                     <v-toolbar>
-                      <v-toolbar-title>Create new account</v-toolbar-title>
+                      <v-toolbar-title>Create Account</v-toolbar-title>
                     </v-toolbar>
                     <v-container class="pa-8">
                       <v-card-text>
@@ -164,9 +164,32 @@
                   @click="forgotDialog = true"
                   color="yellow"
                   class="black--text"
-                  >Forgot my password</v-btn
+                  >Reset Password</v-btn
                 >
               </v-card-text>
+              <v-divider />
+              <v-container fluid>
+                <v-col justify="start">
+                  <v-row justify="center">
+                    <a
+                      class="ios-badge"
+                      href="https://apps.apple.com/us/app/ar-earth/id1523587669"
+                      ><img
+                        alt="Get it on the AppStore"
+                        src="./images/iosBadge.svg"
+                    /></a>
+                  </v-row>
+                  <v-row justify="center">
+                    <a
+                      class="google-badge"
+                      href="https://play.google.com/store/apps/details?id=com.sdbh.arearth&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1"
+                      ><img
+                        alt="Get it on Google Play"
+                        src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                    /></a>
+                  </v-row>
+                </v-col>
+              </v-container>
             </v-card>
           </v-col>
         </v-row>
@@ -324,3 +347,9 @@ export default {
   },
 };
 </script>
+<style scoped>
+.google-badge img {
+  width: 8.5rem;
+  height: 3.65rem;
+}
+</style>
